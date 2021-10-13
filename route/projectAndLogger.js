@@ -16,7 +16,9 @@ const {authUser,restrictToRole} = require('../middleware/authenticate');
 const { authDevice } = require('../middleware/validate');
 
 // Unprotected
-router.post('/makeLog/:project_code',authDevice ,makeEntriesInDeviceLogger)
+router.post('/makeLog/:project_code',
+// authDevice ,
+makeEntriesInDeviceLogger)
 
 
 // Protected
