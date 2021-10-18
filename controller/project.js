@@ -12,6 +12,13 @@ const {
     checkCollectionName
 } = require('../helper/helperFunctions')
 
+const getDaysArray = function(start, end) {
+    for(var arr=[],dt=new Date(start); dt<=end; dt.setDate(dt.getDate()+1)){
+        arr.push(new Date(dt).toISOString().split("T")[0]);
+    }
+    return arr;
+};
+
 /**
  * 
  * @param {*} req 
@@ -618,6 +625,79 @@ const getDeviceCount = async (req,res) => {
     }
 }
 
+const dateWiseLogCount = async (req,res) => {
+    try {
+        const {projectCode} = req.params;
+        const projectCollection = await Projects.findOne({code: projectCode})
+        const collectionName = require(`../model/${projectCollection.collection_name}.js`)
+        const response = await collectionName.aggregate([
+            {
+                $match: {createdAt: { $gte: new Date(req.query.startDate), $lte: new Date(req.query.endDate) }}
+            },
+            {
+                $group: {
+                    _id: {
+                        DATE: { $substr: ["$createdAt", 0, 10]}
+                    },
+                    countLog: { $sum: 1 }
+                }
+            },
+            // { $sort: { "DATE": -1 } },
+            {
+                $project: {
+                    _id: 0,
+                    date: '$_id.DATE',
+                    countLog: 1
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    stats: { $push: "$$ROOT" }
+                }
+            },
+            {
+                $project: {
+                    stats: {
+                        $map: {
+                            input: getDaysArray(new Date(req.query.startDate),new Date(req.query.endDate)),
+                            as: "date_new",
+                            in: {
+                                $let: {
+                                    vars: { dateIndex: { "$indexOfArray": ["$stats.date", "$$date_new"] } },
+                                    in: {
+                                        $cond: {
+                                            if: { $ne: ["$$dateIndex", -1] },
+                                            then: {
+                                                $arrayElemAt: ["$stats", "$$dateIndex"]
+                                            },
+                                            else: {
+                                                DATE: { $substr: [{$toDate: "$$date_new"}, 0, 10] },
+                                                countLog: 0
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $unwind: "$stats"
+            },
+            {
+                $replaceRoot: {
+                    newRoot: "$stats"
+                }
+            }
+        ])
+        res.status(200).json({status: 1, data: {response}, message: 'Getting log count on the basis of date range.'})
+    } catch (error) {
+        console.log(error)
+    }
+}
+
 
 module.exports = {
     createNewProject,
@@ -628,5 +708,6 @@ module.exports = {
     getProjectWithFilter,
     getdeviceIdProjectWise,
     getProjectLogs,
-    getDeviceCount
+    getDeviceCount,
+    dateWiseLogCount
 }
