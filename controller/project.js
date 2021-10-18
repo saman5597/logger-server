@@ -695,6 +695,18 @@ const dateWiseLogCount = async (req,res) => {
         res.status(200).json({status: 1, data: {response}, message: 'Getting log count on the basis of date range.'})
     } catch (error) {
         console.log(error)
+        return res.json({
+            status: 0,
+            data: {
+              err: {
+                generatedTime: new Date(),
+                errMsg: error.name,
+                msg: error.message,
+                type: 'InternalServerError'
+              }
+            }
+      
+          })
     }
 }
 
