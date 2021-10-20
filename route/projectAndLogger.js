@@ -10,7 +10,10 @@ const {
     getdeviceIdProjectWise,
     getProjectLogs,
     getDeviceCount,
-    dateWiseLogCount
+    dateWiseLogCount,
+    getLogsCountWithOs,
+    getLogsCountWithModelName
+    
 } = require('../controller/project');
 
 const {authUser,restrictToRole} = require('../middleware/authenticate');
@@ -32,5 +35,7 @@ router.get('/getIds/:projectCode',authUser,getdeviceIdProjectWise)
 router.get('/getLogsCount/:projectCode',authUser,getProjectLogs)
 router.get('/getDeviceCount/:projectCode',authUser,getDeviceCount)
 router.get('/datewiselogcount/:projectCode',dateWiseLogCount)
+router.get('/getLogsCountWithOs/:projectCode',authUser,getLogsCountWithOs)
+router.get('/getLogsCountWithModelName/:projectCode',authUser,getLogsCountWithModelName)
 
 module.exports = router;

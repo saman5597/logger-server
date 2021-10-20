@@ -130,6 +130,18 @@ const createNewProject = async (req,res) => {
                     type: String,
                     enum: ["verbose","warn","info","error","debug"],
                     default: "info"
+                },
+                version: {
+                    type: String,
+                    required: [true, 'Log version is required.']
+                },
+                modelName: {
+                    type: String,
+                    required: [true, 'Log model name is required.']
+                },
+                osArchitecture: {
+                    type: String,
+                    required: [true, 'Log OS architecture is required.']
                 }
             },
             schemaOptions
@@ -313,6 +325,18 @@ const updateProjectWithProjectCode = async(req,res)=>{
                         type: String,
                         enum: ["verbose","warn","info","error","debug"],
                         default: "info"
+                    },
+                    version: {
+                        type: String,
+                        required: [true, 'Log version is required.']
+                    },
+                    modelName: {
+                        type: String,
+                        required: [true, 'Log model name is required.']
+                    },
+                    osArchitecture: {
+                        type: String,
+                        required: [true, 'Log OS architecture is required.']
                     }
                 },
                 schemaOptions
@@ -711,6 +735,81 @@ const dateWiseLogCount = async (req,res) => {
 }
 
 
+
+const getLogsCountWithOs = async (req,res) => {
+    try {
+        const {projectCode} = req.params;
+      
+        const projectCollection = await Projects.findOne({code: projectCode})
+   
+        const collectionName = require(`../model/${projectCollection.collection_name}.js`)
+        if(!collectionName) throw{
+            "message":"Collection Name Not Found "
+        }
+   
+        const osTotalCount = await collectionName.countDocuments()
+        const osParticularCount = await collectionName.aggregate([{$group: {_id : "$osArchitecture", count : {$sum : 1}}},{$project:{osArchitecture:"$_id",count:1, _id:0}}])
+        return res.json({
+            "status":1,
+            "data":{
+              
+                deviceCount: osTotalCount,
+                osParticularCount: osParticularCount[0].count
+            },
+            "message":"successfull"
+        })
+    } catch (error) {
+        return res.json({
+            data: {
+                err: {
+                  generatedTime: new Date(),
+                  errMsg: error.name,
+                  msg: error.message,
+                  type: 'NotFoundError'
+                }
+              }
+        })
+    }
+}
+
+const getLogsCountWithModelName = async (req,res) => {
+    try {
+        const {projectCode} = req.params;
+        
+        const projectCollection = await Projects.findOne({code: projectCode})
+        
+        const collectionName = require(`../model/${projectCollection.collection_name}.js`)
+        if(!collectionName) throw{
+            "message":"Collection Name Not Found "
+        }
+    
+        const modelTotalCount = await collectionName.countDocuments()
+        const modelNameParticularCount = await collectionName.aggregate([{$group: {_id : "$modelName", count : {$sum : 1}}},{$project:{modelName:"$_id",count:1, _id:0}}])
+        return res.json({
+            "status":1,
+            "data":{
+              
+                deviceCount: modelTotalCount,
+                modelNameParticularCount: modelNameParticularCount[0].count
+            },
+            "message":"successfull"
+        })
+    } catch (error) {
+        return res.json({
+            data: {
+                err: {
+                  generatedTime: new Date(),
+                  errMsg: error.name,
+                  msg: error.message,
+                  type: 'NotFoundError'
+                }
+              }
+        })
+    }
+}
+
+
+
 module.exports = {
     createNewProject,
     getAllRegisterProject,
@@ -721,5 +820,7 @@ module.exports = {
     getdeviceIdProjectWise,
     getProjectLogs,
     getDeviceCount,
-    dateWiseLogCount
+    dateWiseLogCount,
+    getLogsCountWithOs,
+    getLogsCountWithModelName
 }
