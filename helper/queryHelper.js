@@ -48,11 +48,24 @@ class QueryHelper {
     }
 
     logFilter() {
+        // const queryObj = { ...this.queryStr };
+        // console.log(queryObj)
+        // var result = (queryObj.logType).split('-');
+        // this.query = this.query.find({logType:result});
+        // return this;
         const queryObj = { ...this.queryStr };
         console.log(queryObj)
-        var result = (queryObj.logType).split('-');
-        this.query = this.query.find({logType:result});
+        console.log(queryObj.logType)
+        let result
+        if(queryObj.logType){
+            result = (queryObj.logType).split('-');
+            console.log(result)
+            this.query = this.query.find({logType:result});
+        }
+        console.log(result)
+       
         return this;
+        
     }
 }
 
