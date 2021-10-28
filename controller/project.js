@@ -696,7 +696,7 @@ const dateWiseLogCount = async (req,res) => {
                                                 $arrayElemAt: ["$stats", "$$dateIndex"]
                                             },
                                             else: {
-                                                DATE: { $substr: [{$toDate: "$$date_new"}, 0, 10] },
+                                                date: { $substr: [{$toDate: "$$date_new"}, 0, 10] },
                                                 countLog: 0
                                             }
                                         }
