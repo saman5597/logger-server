@@ -487,7 +487,7 @@ const getProjectWithFilter = async(req,res)=>{
         const skip = (page - 1) * limit;
         let logTypeObject;
 
-        const features = new QueryHelper(collectionName.find({}),req.query).filter().sort().paginate().logFilter()
+        const features = new QueryHelper(collectionName.find({}),req.query).filter().sort().logFilter() //.paginate()
         logTypeObject = await features.query
 
 
