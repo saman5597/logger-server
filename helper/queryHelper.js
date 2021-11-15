@@ -41,7 +41,7 @@ class QueryHelper {
 
     paginate() {
         const page = parseInt(this.queryStr.page) || 1;
-        const limit = parseInt(this.queryStr.limit) || 100;
+        const limit = parseInt(this.queryStr.limit) || 1000;
         const skip = (page - 1) * limit;
         this.query = this.query.skip(skip).limit(limit);
         return this;
