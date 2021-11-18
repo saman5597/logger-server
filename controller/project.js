@@ -482,11 +482,11 @@ const getProjectWithFilter = async(req,res)=>{
         // console.log({...collectionName})
         
         const logTypeList = ["warn","info","error","debug"];
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
-        const skip = (page - 1) * limit;
+        //         const page = parseInt(req.query.page) || 1;
+        //         const limit = parseInt(req.query.limit) || 10;
+        //         const skip = (page - 1) * limit;
         let logTypeObject;
-
+        const totalCount = await collectionName.estimatedDocumentCount({})
         const features = new QueryHelper(collectionName.find({}),req.query).filter().sort().logFilter().paginate()
         logTypeObject = await features.query
 
@@ -500,7 +500,7 @@ const getProjectWithFilter = async(req,res)=>{
             })
         }) 
 
-        return res.json({"status":1,"message":"Successfull ","data":{'count': logTypeObject.length,'logs':logTypeObject}})
+        return res.json({"status":1,"message":"Successfull ","data":{totalCount,'count': logTypeObject.length,'logs':logTypeObject}})
     } catch (error) {
         console.log(error)
         return res.json({
