@@ -483,7 +483,7 @@ const getProjectWithFilter = async (req, res) => {
 
         let logs;
 
-        const totalCount = await collectionName.estimatedDocumentCount({})
+        // const totalCount = await collectionName.estimatedDocumentCount({})
         const countObjQuery = new QueryHelper(collectionName.find({}), req.query).filter().logFilter()
         const countObj = await countObjQuery.query
         const features = new QueryHelper(collectionName.find({}), req.query).filter().sort().logFilter().paginate()
@@ -498,7 +498,7 @@ const getProjectWithFilter = async (req, res) => {
             })
         })
 
-        return res.json({ "status": 1, "message": "Successfull ", "data": { totalCount, 'count': countObj.length, 'pageLimit': logs.length, 'logs': logs } })
+        return res.json({ "status": 1, "message": "Successfull ", "data": { 'count': countObj.length, 'pageLimit': logs.length, 'logs': logs } })
     } catch (error) {
         console.log(error)
         return res.json({
