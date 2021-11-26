@@ -84,7 +84,7 @@ const createNewProject = async (req, res) => {
             collection_name
         })
         const savedProject = await project.save(project);
-
+        console.log(savedProject)
         if (!savedProject) throw { message: "Project not created!!" }
 
         // dynamic schema
@@ -151,7 +151,7 @@ const createNewProject = async (req, res) => {
         
         module.exports = ${collection_name}
         `
-
+        console.log(`${__dirname.concat(`/../model/${collection_name}.js`)}`)    
         fs.writeFile(`${__dirname.concat(`/../model/${collection_name}.js`)}`, schemaBlueprint, {
             encoding: "utf8",
             flag: "w",
