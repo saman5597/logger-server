@@ -753,7 +753,7 @@ const getLogsCountWithOs = async (req, res) => {
 
         const osTotalCount = await collectionName.countDocuments()
         const osParticularCount = await collectionName.aggregate([{ $group: { _id: "$osArchitecture", count: { $sum: 1 } } }, { $project: { osArchitecture: "$_id", count: 1, _id: 0 } }])
-        return resres.status(200).json({
+        return res.status(200).json({
             "status": 1,
             "data": {
 
