@@ -181,7 +181,7 @@ const createNewProject = async (req, res) => {
                 }
             }
         })
-        res.status(400).json({
+        res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -221,7 +221,7 @@ const getProjectWithProjectCode = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-        res.status(400).json({
+        res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -420,6 +420,9 @@ const makeEntriesInDeviceLogger = async (req, res) => {
             log_message,
             logGeneratedDate,
             log_type,
+            osArchitecture,
+            version,
+            modelName
         } = req.body
 
         //  above details will be put in project tables
@@ -431,7 +434,10 @@ const makeEntriesInDeviceLogger = async (req, res) => {
             logGeneratedDate,
             logMsg: log_message,
             device_types: model_type,
-            logType: log_type
+            logType: log_type,
+            osArchitecture:osArchitecture,
+            version:version,
+            modelName:modelName
         })
 
         const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb)
@@ -501,7 +507,7 @@ const getProjectWithFilter = async (req, res) => {
         return res.json({ "status": 1, "message": "Successfull ", "data": { 'count': countObj.length, 'pageLimit': logs.length, 'logs': logs } })
     } catch (error) {
         console.log(error)
-        return res.json({
+        return res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -532,7 +538,7 @@ const getdeviceIdProjectWise = async (req, res) => {
 
         const collectionName = require(`../model/${isProjectExist.collection_name}.js`)
         const listOfId = await collectionName.find().select('did')
-        return res.json({
+        return res.status(200).json({
             "status": 1,
             "data": { 'deviceIds': listOfId },
             "message": "Successful"
@@ -540,7 +546,7 @@ const getdeviceIdProjectWise = async (req, res) => {
 
     } catch (error) {
         console.log(error)
-        return res.json({
+        return res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -573,7 +579,7 @@ const getProjectLogs = async (req, res) => {
         const totalLogCount = await collectionName.aggregate([{ $group: { _id: "null", count: { $sum: 1 } } }]);
         const lastLogEntry = await collectionName.findOne().sort({ 'createdAt': -1 })
 
-        return res.json({
+        return res.status(200).json({
             "status": 1,
             "data": {
                 totalLogCount: totalLogCount[0].count,
@@ -584,7 +590,7 @@ const getProjectLogs = async (req, res) => {
         })
 
     } catch (error) {
-        return res.json({
+        return res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -622,7 +628,7 @@ const getDeviceCount = async (req, res) => {
         }
         const collection = await collectionName.find().distinct('did')
 
-        return res.json({
+        return res.status(200).json({
             "status": 1,
             "data": {
                 projectCreationDate: createdAt,
@@ -633,7 +639,7 @@ const getDeviceCount = async (req, res) => {
             "message": "successfull"
         })
     } catch (error) {
-        return res.json({
+        return res.status(404).json({
             data: {
                 err: {
                     generatedTime: new Date(),
@@ -717,7 +723,7 @@ const dateWiseLogCount = async (req, res) => {
         res.status(200).json({ status: 1, data: { response }, message: 'Getting log count on the basis of date range.' })
     } catch (error) {
         console.log(error)
-        return res.json({
+        return res.status(404).json({
             status: 0,
             data: {
                 err: {
@@ -747,7 +753,7 @@ const getLogsCountWithOs = async (req, res) => {
 
         const osTotalCount = await collectionName.countDocuments()
         const osParticularCount = await collectionName.aggregate([{ $group: { _id: "$osArchitecture", count: { $sum: 1 } } }, { $project: { osArchitecture: "$_id", count: 1, _id: 0 } }])
-        return res.json({
+        return resres.status(200).json({
             "status": 1,
             "data": {
 
@@ -757,7 +763,7 @@ const getLogsCountWithOs = async (req, res) => {
             "message": "successfull"
         })
     } catch (error) {
-        return res.json({
+        return res.status(404).json({
             data: {
                 err: {
                     generatedTime: new Date(),
@@ -783,7 +789,7 @@ const getLogsCountWithModelName = async (req, res) => {
 
         const modelTotalCount = await collectionName.countDocuments()
         const modelNameParticularCount = await collectionName.aggregate([{ $group: { _id: "$modelName", count: { $sum: 1 } } }, { $project: { modelName: "$_id", count: 1, _id: 0 } }])
-        return res.json({
+        return res.status(200).json({
             "status": 1,
             "data": {
 
@@ -793,7 +799,7 @@ const getLogsCountWithModelName = async (req, res) => {
             "message": "successfull"
         })
     } catch (error) {
-        return res.json({
+        return res.status(404).json({
             data: {
                 err: {
                     generatedTime: new Date(),
