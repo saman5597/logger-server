@@ -5,7 +5,8 @@ const jwt = require("jsonwebtoken");
 
 const redis = require("redis");
 const url = require("url");
-const sendEmail = require("../helper/sendEmail");
+const {sendEmail} = require("../helper/sendEmail");
+const {createOtp} = require('../helper/helperFunction');
 
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
