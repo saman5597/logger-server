@@ -6,12 +6,13 @@ const jwt = require("jsonwebtoken");
 const redis = require("redis");
 const url = require("url");
 const {sendEmail} = require("../helper/sendEmail");
-const {createOtp} = require('../helper/helperFunction');
+const {createOtp} = require('../helper/helperFunctions');
 
 const JWTR = require("jwt-redis").default;
-const jwtr = new JWTR(redisClient);
+
 
 const Users = require("../model/users");
+const ForgetPassword = require("../model/forgetPassword")
 const { ValidateEmail } = require("../helper/validatorMiddleware");
 const { validationResult } = require("express-validator");
 dotenv.config();
@@ -26,6 +27,7 @@ if (process.env.REDISCLOUD_URL) {
 } else {
   redisClient = redis.createClient();
 }
+const jwtr = new JWTR(redisClient);
 /**
  * api      POST @/api/logger/register
  * desc     @register for logger access only
@@ -43,8 +45,6 @@ const registerUser = async (req, res) => {
 
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(password, salt);
-
-    console.log(`password hash: ${passwordHash}`);
 
     if (validateEmailId) {
       const user = await new Users({
@@ -108,7 +108,8 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    console.log("request receive at login user!!!");
+    // console.log("request receive at login user!!!");
+    // console.log(process.env.NODE_ENV);
     const { email, password } = req.body;
 
     if (!email || !password)
@@ -165,6 +166,9 @@ const loginUser = async (req, res) => {
     const token = await jwtr.sign(id, process.env.JWT_SECRET, {
       expiresIn: "15d",
     });
+    if (process.env.NODE_ENV == 'DEVELOPMENT') {
+      console.log("File written successfully");      
+  }
 
     // Assign token to http cookies
     return res.status(201).json({
@@ -219,9 +223,7 @@ const userForgetPassword = async (req, res) => {
     // send email -> inside helper folder
     sendEmail({ otp, to: email, msg: `Hello ${user.name}` });
 
-    return res
-      .cookie("email", user.email)
-      .status(200)
+    return res.status(200)
       .json({ success: true, message: `Email send to you!` });
   } catch (error) {
     return res
@@ -241,9 +243,8 @@ const resetForgetPassword = async (req, res) => {
     // look for email
     // const email = req.cookies.email;
     const { email } = req.body;
-    console.log(email);
     if (!email)
-      throw "You refresh the page or reopen the  tab, please reapply to reset the password";
+      throw "Provide email";
 
     // destructure to otp and password
     const { otp, password, passwordVerify } = req.body;
@@ -275,9 +276,9 @@ const resetForgetPassword = async (req, res) => {
 
       // delete cookie email and other token
       return res
-        .cookie("email", "", {
-          expires: new Date(0), // Date(0) means it set to 1/Jan/1970 00:00:00 hr.
-        })
+        // .json("email", "", {
+        //   expires: new Date(0), // Date(0) means it set to 1/Jan/1970 00:00:00 hr.
+        // })
         .json({ success: true, message: "password reset successfully" });
     } else {
       throw "OTP does not match, try again!";
@@ -300,6 +301,9 @@ const logoutUser = async (req, res) => {
       .json({ status: 1, data: {}, message: "Logged out successfully!" });
     // return res.json({'message':'Logged out successfully!','token':token});
   } catch (error) {
+    if (process.env.NODE_ENV == 'DEVELOPMENT') {
+      console.log(error)
+    }
     return res.status(500).json({
       status: 0,
       data: {

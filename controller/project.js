@@ -76,7 +76,7 @@ const createNewProject = async (req, res) => {
 
     const isCollectionExist = await checkCollectionName(name + "_collection");
 
-    if (isCollectionExist) throw { message: "Project name already exist!!" };
+    if (isCollectionExist) throw { message: "Project with provided name already exist!!" };
 
     const collection_name =
       removeAllSpecialChars(name).toLowerCase() + "_collection";
@@ -88,7 +88,6 @@ const createNewProject = async (req, res) => {
       collection_name,
     });
     const savedProject = await project.save(project);
-    console.log(savedProject);
     if (!savedProject) throw { message: "Project not created!!" };
 
     // dynamic schema
@@ -170,7 +169,9 @@ const createNewProject = async (req, res) => {
         // {
         //     console.log('err: ', err)
         // }
-        console.log("File written successfully");
+        if (process.env.NODE_ENV == 'DEVELOPMENT') {
+          console.log("File written successfully");      
+      }
         // console.log(fs.readFileSync(../models/${schemaName}.js, 'utf8'))
       }
     );
@@ -269,11 +270,7 @@ const updateProjectWithProjectCode = async (req, res) => {
     if (!device_type) {
       console.log("hello");
     }
-    // if(!name  || device_type) throw "Please provide atleast one field to update!!"
-
-    // let  modelSchema = `${getProjectWithProjectCode.collection_name}Schema`
-    // const `${modelSchema}` = require(`../model/${getProjectWithProjectCode.collectionName}`)
-
+  
     // Add new element to array
 
     const addNewElementToArray = [];
@@ -380,7 +377,9 @@ const updateProjectWithProjectCode = async (req, res) => {
           // {
           //     console.log('err: ', err)
           // }
-          console.log("File written successfully");
+          if (process.env.NODE_ENV == 'DEVELOPMENT') {
+              console.log("File update successfully");      
+          }
           // console.log(fs.readFileSync(../models/${schemaName}.js, 'utf8'))
         }
       );
@@ -734,7 +733,7 @@ const getDeviceCount = async (req, res) => {
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     if (!collectionName)
       throw {
-        message: "Collection Name Not Found ",
+        message: "Collection Not Found ",
       };
     const collection = await collectionName.find().distinct("did");
 
@@ -842,7 +841,7 @@ const dateWiseLogCount = async (req, res) => {
     res.status(200).json({
       status: 1,
       data: { response },
-      message: "Getting log count on the basis of date range.",
+      message: "Log count on the basis of date.",
     });
   } catch (error) {
     console.log(error);
@@ -869,7 +868,7 @@ const getLogsCountWithOs = async (req, res) => {
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     if (!collectionName)
       throw {
-        message: "Collection Name Not Found ",
+        message: "Project Not Found ",
       };
 
     const osTotalCount = await collectionName.countDocuments();
@@ -908,7 +907,7 @@ const getLogsCountWithModelName = async (req, res) => {
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     if (!collectionName)
       throw {
-        message: "Collection Name Not Found ",
+        message: "Project Not Found ",
       };
 
     const modelTotalCount = await collectionName.countDocuments();
