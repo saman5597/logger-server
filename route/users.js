@@ -7,6 +7,8 @@ const {
     registerUser,
     loginUser,
     logoutUser,
+    userForgetPassword,
+    resetForgetPassword
 } = require('../controller/users.js')
 
 const {
@@ -17,7 +19,12 @@ const middlewares = [check('email').isEmail().normalizeEmail(), check('password'
 // Unprotected
 router.post('/login', loginUser)
 router.post('/register',registerUser)
-router.get('/login',(req,res)=>res.send("req receive successfully!!!"))
+// router.get('/login',(req,res)=>res.send("req receive successfully!!!"))
+
+router.post('/forget',userForgetPassword);
+
+// Token access
+router.post('/resetPassword',resetForgetPassword)
 
 // Protected
 router.get('/logout',authUser,logoutUser)

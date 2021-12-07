@@ -653,15 +653,14 @@ const getErrorCountByVersion = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
-      {$match:{logType:'error'}},
-      {$group :{_id :"$version", count:{$sum:1}}}
+      { $match: { logType: "error" } },
+      { $group: { _id: "$version", count: { $sum: 1 } } },
     ]);
 
     return res.status(200).json({
       status: 1,
       data: {
         typeWiseCount,
-
       },
       message: "successfull",
     });
@@ -691,15 +690,14 @@ const getErrorCountByOSArchitecture = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
-      {$match:{logType:'error'}},
-      {$group :{_id :"$osArchitecture", count:{$sum:1}}}
+      { $match: { logType: "error" } },
+      { $group: { _id: "$osArchitecture", count: { $sum: 1 } } },
     ]);
 
     return res.status(200).json({
       status: 1,
       data: {
         typeWiseCount,
-        
       },
       message: "successfull",
     });
@@ -954,5 +952,5 @@ module.exports = {
   dateWiseLogCount,
   getLogsCountWithOs,
   getLogsCountWithModelName,
-  getErrorCountByOSArchitecture
+  getErrorCountByOSArchitecture,
 };
