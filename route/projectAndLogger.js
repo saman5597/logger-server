@@ -12,6 +12,7 @@ const {
     getErrorCountByVersion,
     getDeviceCount,
     dateWiseLogCount,
+    logOccurrences,
     getLogsCountWithOs,
     getLogsCountWithModelName,
     getErrorCountByOSArchitecture,
@@ -27,6 +28,8 @@ router.post('/makeLog/:project_code',
 // authDevice ,
 makeEntriesInDeviceLogger)
 router.get('/datewiselogcount/:projectCode',dateWiseLogCount)
+
+router.get('/log-occurrences-datewise/:projectCode',logOccurrences)
 
 
 // Protected

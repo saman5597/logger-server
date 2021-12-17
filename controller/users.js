@@ -165,7 +165,7 @@ const loginUser = async (req, res) => {
     });
 
     // Assign token to http cookies
-    return res.status(201).json({
+    return res.status(200).json({
       status: 1,
       message: `Logged In Successfull`,
       data: {
