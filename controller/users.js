@@ -72,7 +72,6 @@ const registerUser = async (req, res) => {
         message: "Invalid email address.",
       };
   } catch (error) {
-    console.log(error);
     if (error.code === 11000)
       res.status(409).json({
         status: 0,
@@ -108,8 +107,6 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    // console.log("request receive at login user!!!");
-    // console.log(process.env.NODE_ENV);
     const { email, password } = req.body;
 
     if (!email || !password)
@@ -166,9 +163,6 @@ const loginUser = async (req, res) => {
     const token = await jwtr.sign(id, process.env.JWT_SECRET, {
       expiresIn: "15d",
     });
-    if (process.env.NODE_ENV == 'DEVELOPMENT') {
-      console.log("File written successfully");      
-  }
 
     // Assign token to http cookies
     return res.status(201).json({
@@ -181,7 +175,6 @@ const loginUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
     res.status(401).json({
       status: 0,
       data: {
@@ -201,7 +194,6 @@ const userForgetPassword = async (req, res) => {
     // if (req.cookies.token) throw "You are logged in, cannot make this request";
 
     const { email } = req.body;
-    console.log(email);
 
     const user = await Users.findOne({ email });
 
@@ -217,7 +209,6 @@ const userForgetPassword = async (req, res) => {
     });
 
     const storeOTP = await store.save(store);
-    console.log(storeOTP);
     if (!storeOTP) throw "Some error occured in OTP store!";
 
     // send email -> inside helper folder
@@ -293,9 +284,7 @@ const resetForgetPassword = async (req, res) => {
 const logoutUser = async (req, res) => {
   try {
     const gettoken = req.headers["authorization"].split(" ")[1];
-    console.log(req.user);
     const result = await jwtr.destroy(req.jti);
-    console.log(result);
     return res
       .status(200)
       .json({ status: 1, data: {}, message: "Logged out successfully!" });

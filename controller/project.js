@@ -166,24 +166,19 @@ const createNewProject = async (req, res) => {
       (err) => {
         if (err)
           throw { message: "Some error occured during project creation" };
-        // {
-        //     console.log('err: ', err)
-        // }
-        if (process.env.NODE_ENV == 'DEVELOPMENT') {
           console.log("File written successfully");      
-      }
-        // console.log(fs.readFileSync(../models/${schemaName}.js, 'utf8'))
       }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       status: 1,
       data: { savedProject: savedProject },
       message: "Project Saved succefully",
     });
   } catch (error) {
+    console.log(error)
     if (error.code === 11000)
-      res.status(409).json({
+      return res.status(409).json({
         status: 0,
         data: {
           err: {
@@ -194,7 +189,7 @@ const createNewProject = async (req, res) => {
           },
         },
       });
-    res.status(404).json({
+    return res.status(404).json({
       status: 0,
       data: {
         err: {
@@ -231,7 +226,6 @@ const getProjectWithProjectCode = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    console.log(error);
     res.status(404).json({
       status: 0,
       data: {
@@ -258,7 +252,6 @@ const updateProjectWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
     const { name, description, device_type } = req.body;
-    console.log(req.body);
 
     const getProjectWithProjectCode = await Projects.findOne({
       code: projectCode,
@@ -266,9 +259,7 @@ const updateProjectWithProjectCode = async (req, res) => {
 
     if (!getProjectWithProjectCode)
       throw { message: "We don't have any project with this code!!" };
-    console.log(device_type);
     if (!device_type) {
-      console.log("hello");
     }
   
     // Add new element to array
@@ -278,7 +269,6 @@ const updateProjectWithProjectCode = async (req, res) => {
     if (device_type) {
       const getLengthOfExistingDeviceType =
         getProjectWithProjectCode.device_types.length;
-      console.log(getLengthOfExistingDeviceType);
 
       getProjectWithProjectCode.device_types.map((deviceTypes) =>
         addNewElementToArray.push(deviceTypes)
@@ -358,8 +348,6 @@ const updateProjectWithProjectCode = async (req, res) => {
                 
                 module.exports = ${getProjectWithProjectCode.collection_name}
                 `;
-      console.log(newTypeCodeArray);
-      console.log(addNewElementToArray);
 
       fs.writeFile(
         `${__dirname.concat(
@@ -374,13 +362,7 @@ const updateProjectWithProjectCode = async (req, res) => {
         (err) => {
           if (err)
             throw { message: "Some error occured during project creation" };
-          // {
-          //     console.log('err: ', err)
-          // }
-          if (process.env.NODE_ENV == 'DEVELOPMENT') {
               console.log("File update successfully");      
-          }
-          // console.log(fs.readFileSync(../models/${schemaName}.js, 'utf8'))
         }
       );
     }
@@ -407,7 +389,6 @@ const updateProjectWithProjectCode = async (req, res) => {
       message: "Project Updated!!",
     });
   } catch (error) {
-    console.log(error);
     res.status(400).json({
       status: 0,
       data: {
@@ -478,7 +459,7 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    console.log(error);
+    
     res.status(400).json({
       status: 0,
       data: {
@@ -509,7 +490,6 @@ const getProjectWithFilter = async (req, res) => {
       };
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    // console.log({...collectionName})
 
     let logs;
 
@@ -540,7 +520,6 @@ const getProjectWithFilter = async (req, res) => {
       data: { count: countObj.length, pageLimit: logs.length, logs: logs },
     });
   } catch (error) {
-    console.log(error);
     return res.status(404).json({
       status: 0,
       data: {
@@ -578,7 +557,6 @@ const getdeviceIdProjectWise = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    console.log(error);
     return res.status(404).json({
       status: 0,
       data: {
@@ -844,7 +822,6 @@ const dateWiseLogCount = async (req, res) => {
       message: "Log count on the basis of date.",
     });
   } catch (error) {
-    console.log(error);
     return res.status(404).json({
       status: 0,
       data: {
@@ -937,6 +914,55 @@ const getLogsCountWithModelName = async (req, res) => {
   }
 };
 
+const getlogMsgOccurence = async (req, res)=>{
+  try {
+    const { projectCode } = req.params;
+
+    const { macId,msg } = req.query;
+    
+    const projectCollection = await Projects.findOne({ code: projectCode });
+
+    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    if (!collectionName)
+      throw {
+        message: "Project Not Found ",
+      };
+
+    const modelMsgCount = await collectionName.aggregate([
+      { 
+      $match: {
+        $and:[
+          {did:req.query.macId },
+          {logMsg:{$regex:msg}} 
+        ]
+      }
+    },
+     { $group: { "_id": null, count:{$sum:1} } }
+    ]);
+
+    return res.status(200).json({
+      status: 1,
+      data: {
+        modelMsgCount: modelMsgCount[0].count,
+      },
+      message: "successfull",
+    });
+  } catch (error) {
+    console.log(error)
+    return res.status(404).json({
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error.name,
+          msg: error.message,
+          type: "NotFoundError",
+        },
+      },
+    });
+  }
+}
+
+
 module.exports = {
   createNewProject,
   getAllRegisterProject,
@@ -952,4 +978,5 @@ module.exports = {
   getLogsCountWithOs,
   getLogsCountWithModelName,
   getErrorCountByOSArchitecture,
+  getlogMsgOccurence
 };

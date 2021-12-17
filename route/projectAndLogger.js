@@ -14,7 +14,8 @@ const {
     dateWiseLogCount,
     getLogsCountWithOs,
     getLogsCountWithModelName,
-    getErrorCountByOSArchitecture
+    getErrorCountByOSArchitecture,
+    getlogMsgOccurence
     
 } = require('../controller/project');
 
@@ -41,6 +42,7 @@ router.get('/getDeviceCount/:projectCode',authUser,getDeviceCount)
 router.get('/getErrorCountByOSArchitecture/:projectCode',authUser,getErrorCountByOSArchitecture)
 router.get('/getLogsCountWithOs/:projectCode',authUser,getLogsCountWithOs)
 router.get('/getLogsCountWithModelName/:projectCode',authUser,getLogsCountWithModelName)
-getErrorCountByVersion
+router.get('/logMsgOccurence/:projectCode',authUser,getlogMsgOccurence)
+
 
 module.exports = router;
