@@ -937,6 +937,112 @@ const getLogsCountWithModelName = async (req, res) => {
   }
 };
 
+const logOccurrences = async (req, res) => {
+  try {
+    const { projectCode } = req.params;
+    const projectCollection = await Projects.findOne({ code: projectCode });
+    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    const response = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            { logMsg: {$regex : req.query.logMsg}  }
+         ]
+          // createdAt: {
+          //   $gte: new Date(req.query.startDate),
+          //   $lte: new Date(req.query.endDate),
+          // },
+          // logMsg: {$regex : req.query.logMsg} 
+        },
+      },
+      {
+        $group: {
+          _id: {
+            DATE: { $substr: ["$createdAt", 0, 10] },
+          },
+          countLog: { $sum: 1 },
+        },
+      },
+      // { $sort: { "DATE": -1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.DATE",
+          countLog: 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          stats: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          stats: {
+            $map: {
+              input: getDaysArray(
+                new Date(req.query.startDate),
+                new Date(req.query.endDate)
+              ),
+              as: "date_new",
+              in: {
+                $let: {
+                  vars: {
+                    dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
+                  },
+                  in: {
+                    $cond: {
+                      if: { $ne: ["$$dateIndex", -1] },
+                      then: {
+                        $arrayElemAt: ["$stats", "$$dateIndex"],
+                      },
+                      else: {
+                        date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                        countLog: 0,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $unwind: "$stats",
+      },
+      {
+        $replaceRoot: {
+          newRoot: "$stats",
+        },
+      },
+    ]);
+    res.status(200).json({
+      status: 1,
+      data: { response },
+      message: "Log count on the basis of date.",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(404).json({
+      status: 0,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error.name,
+          msg: error.message,
+          type: "InternalServerError",
+        },
+      },
+    });
+  }
+};
+
 module.exports = {
   createNewProject,
   getAllRegisterProject,
@@ -949,6 +1055,7 @@ module.exports = {
   getErrorCountByVersion,
   getDeviceCount,
   dateWiseLogCount,
+  logOccurrences,
   getLogsCountWithOs,
   getLogsCountWithModelName,
   getErrorCountByOSArchitecture,
