@@ -27,10 +27,6 @@ const { authDevice } = require('../middleware/validate');
 router.post('/makeLog/:project_code',
 // authDevice ,
 makeEntriesInDeviceLogger)
-router.get('/datewiselogcount/:projectCode',dateWiseLogCount)
-
-router.get('/log-occurrences-datewise/:projectCode',logOccurrences)
-
 
 // Protected
 router.get('/',authUser,getAllRegisterProject);
@@ -42,6 +38,8 @@ router.get('/getIds/:projectCode',authUser,getdeviceIdProjectWise)
 router.get('/getLogsCount/:projectCode',authUser,getProjectLogs)
 router.get('/getErrorCountByVersion/:projectCode',authUser,getErrorCountByVersion)
 router.get('/getDeviceCount/:projectCode',authUser,getDeviceCount)
+router.get('/datewiselogcount/:projectCode',authUser,dateWiseLogCount)
+router.get('/log-occurrences-datewise/:projectCode',authUser,logOccurrences)
 router.get('/getErrorCountByOSArchitecture/:projectCode',authUser,getErrorCountByOSArchitecture)
 router.get('/getLogsCountWithOs/:projectCode',authUser,getLogsCountWithOs)
 router.get('/getLogsCountWithModelName/:projectCode',authUser,getLogsCountWithModelName)
