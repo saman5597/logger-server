@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
 
 const redis = require("redis");
 const url = require("url");

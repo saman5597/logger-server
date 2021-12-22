@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken')
 const User = require('../model/users');
 const {checkMD5} = require('../helper/helperFunctions.js')
 
