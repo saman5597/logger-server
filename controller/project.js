@@ -1019,15 +1019,15 @@ const getlogMsgOccurence = async (req, res)=>{
       });
     }
 
-    const { macId,msg } = req.query;
-    if (!macId || !msg) {
+    const { msg } = req.query;
+    if (!msg) {
       return res.status(404).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: 'MAC address or log message not provided.',
-            msg: 'MAC address or log message not provided.',
+            errMsg: 'Log message not provided.',
+            msg: 'Log message not provided.',
             type: "MongoDBError",
           },
         },
@@ -1050,27 +1050,24 @@ const getlogMsgOccurence = async (req, res)=>{
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    // if (!collectionName)
-    //   throw {
-    //     message: "Project Not Found ",
-    //   };
 
-    const modelMsgCount = await collectionName.aggregate([
+    const response = await collectionName.aggregate([
       { 
       $match: {
         $and:[
-          {did:req.query.macId },
-          {logMsg:{$regex:msg}} 
+          // {did:req.query.macId },
+          {logMsg:{$regex:msg}},
+          {logType: "error"}
         ]
       }
     },
-     { $group: { "_id": null, count:{$sum:1} } }
+     { $group: { "_id": "$did", count:{$sum:1} } }
     ]);
 
     return res.status(200).json({
       status: 1,
       data: {
-        modelMsgCount: modelMsgCount[0].count,
+        response,
       },
       message: "successfull",
     });
@@ -1217,6 +1214,116 @@ const logOccurrences = async (req, res) => {
   }
 };
 
+const crashlyticsData = async (req, res) => {
+  try {
+    const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
+    const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
+    console.log(projectCollection)
+    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    const versionResponse = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            { logMsg: {$regex : req.query.logMsg}  }
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: "$version",
+          countLog: { $sum : 1}
+        },
+      }
+    ]);
+    const osArchitectureResponse = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            { logMsg: {$regex : req.query.logMsg}  }
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: "$osArchitecture",
+          countLog: { $sum : 1}
+        },
+      }
+    ]);
+    const modelNameResponse = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            { logMsg: {$regex : req.query.logMsg}  }
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: "$modelName",
+          countLog: { $sum : 1}
+        },
+      }
+    ]);
+    res.status(200).json({
+      status: 1,
+      data: { versionResponse, osArchitectureResponse, modelNameResponse },
+      message: "Crashlytics data on the basis of date.",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      status: 0,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error.name,
+          msg: error.message,
+          type: "InternalServerError",
+        },
+      },
+    });
+  }
+};
+
 module.exports = {
   createNewProject,
   getAllRegisterProject,
@@ -1230,6 +1337,7 @@ module.exports = {
   getDeviceCount,
   dateWiseLogCount,
   logOccurrences,
+  crashlyticsData,
   getLogsCountWithOs,
   getLogsCountWithModelName,
   getErrorCountByOSArchitecture,
