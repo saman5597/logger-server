@@ -10,18 +10,8 @@ const {
   makeid,
   removeAllSpecialChars,
   checkCollectionName,
+  getDaysArray
 } = require("../helper/helperFunctions");
-
-const getDaysArray = function (start, end) {
-  for (
-    var arr = [], dt = new Date(start);
-    dt <= end;
-    dt.setDate(dt.getDate() + 1)
-  ) {
-    arr.push(new Date(dt).toISOString().split("T")[0]);
-  }
-  return arr;
-};
 
 /**
  *
@@ -45,7 +35,7 @@ const getAllRegisterProject = async (req, res) => {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "ProjectNotFound",
+          type: "InternalServerError",
         },
       },
     });
@@ -211,14 +201,34 @@ const createNewProject = async (req, res) => {
 const getProjectWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const getProject = await Projects.findOne({ code: projectCode });
-
-    if (!getProject)
-      throw {
+    if (!getProject) {
+      return res.status(404).json({
         status: 0,
-        message: "Project code Invalid!!",
-      };
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     res.status(200).json({
       status: 1,
@@ -226,14 +236,14 @@ const getProjectWithProjectCode = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    res.status(404).json({
+    res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -520,14 +530,14 @@ const getProjectWithFilter = async (req, res) => {
       data: { count: countObj.length, pageLimit: logs.length, logs: logs },
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "ProjectFilterError",
+          type: "InternalServerError",
         },
       },
     });
@@ -557,14 +567,14 @@ const getdeviceIdProjectWise = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -605,14 +615,14 @@ const getProjectLogs = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -642,14 +652,14 @@ const getErrorCountByVersion = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -679,14 +689,14 @@ const getErrorCountByOSArchitecture = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -726,13 +736,13 @@ const getDeviceCount = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -742,7 +752,33 @@ const getDeviceCount = async (req, res) => {
 const dateWiseLogCount = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -822,7 +858,7 @@ const dateWiseLogCount = async (req, res) => {
       message: "Log count on the basis of date.",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
@@ -839,14 +875,40 @@ const dateWiseLogCount = async (req, res) => {
 const getLogsCountWithOs = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    if (!collectionName)
-      throw {
-        message: "Project Not Found ",
-      };
+    // if (!collectionName)
+    //   throw {
+    //     message: "Project Not Found ",
+    //   };
 
     const osTotalCount = await collectionName.countDocuments();
     const osParticularCount = await collectionName.aggregate([
@@ -862,13 +924,13 @@ const getLogsCountWithOs = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -878,14 +940,40 @@ const getLogsCountWithOs = async (req, res) => {
 const getLogsCountWithModelName = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    if (!collectionName)
-      throw {
-        message: "Project Not Found ",
-      };
+    // if (!collectionName)
+    //   throw {
+    //     message: "Project Not Found ",
+    //   };
 
     const modelTotalCount = await collectionName.countDocuments();
     const modelNameParticularCount = await collectionName.aggregate([
@@ -901,13 +989,13 @@ const getLogsCountWithModelName = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(404).json({
+    return res.status(500).json({
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     });
@@ -917,16 +1005,55 @@ const getLogsCountWithModelName = async (req, res) => {
 const getlogMsgOccurence = async (req, res)=>{
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const { macId,msg } = req.query;
+    if (!macId || !msg) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'MAC address or log message not provided.',
+            msg: 'MAC address or log message not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     
     const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    if (!collectionName)
-      throw {
-        message: "Project Not Found ",
-      };
+    // if (!collectionName)
+    //   throw {
+    //     message: "Project Not Found ",
+    //   };
 
     const modelMsgCount = await collectionName.aggregate([
       { 
@@ -949,13 +1076,13 @@ const getlogMsgOccurence = async (req, res)=>{
     });
   } catch (error) {
     console.log(error)
-    return res.status(404).json({
+    return res.status(500).json({
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
+          type: "InternalServerError",
         },
       },
     })
@@ -966,7 +1093,33 @@ const getlogMsgOccurence = async (req, res)=>{
 const logOccurrences = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -978,11 +1131,6 @@ const logOccurrences = async (req, res) => {
             } },
             { logMsg: {$regex : req.query.logMsg}  }
          ]
-          // createdAt: {
-          //   $gte: new Date(req.query.startDate),
-          //   $lte: new Date(req.query.endDate),
-          // },
-          // logMsg: {$regex : req.query.logMsg} 
         },
       },
       {
@@ -1051,18 +1199,17 @@ const logOccurrences = async (req, res) => {
     res.status(200).json({
       status: 1,
       data: { response },
-      message: "Log count on the basis of date.",
+      message: "Log count per log message on the basis of date.",
     });
   } catch (error) {
     console.log(error);
-    return res.status(404).json({
+    return res.status(500).json({
       status: 0,
       data: {
         err: {
           generatedTime: new Date(),
           errMsg: error.name,
           msg: error.message,
-          type: "NotFoundError",
           type: "InternalServerError",
         },
       },

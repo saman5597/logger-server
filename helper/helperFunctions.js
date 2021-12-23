@@ -16,6 +16,17 @@ const removeAllSpecialChars = (text) => {
   return text.replace(/[^a-zA-Z]/g, "");
 }
 
+const getDaysArray = function (start, end) {
+  for (
+    var arr = [], dt = new Date(start);
+    dt <= end;
+    dt.setDate(dt.getDate() + 1)
+  ) {
+    arr.push(new Date(dt).toISOString().split("T")[0]);
+  }
+  return arr;
+};
+
 const checkCollectionName= async (projectName) => {
   // const collecctionName = await mongoose.connection.db.getCollectionNames()
   
@@ -46,6 +57,7 @@ const createOtp = (length,specialChars)=>{
 module.exports = {
   makeid,
   removeAllSpecialChars,
+  getDaysArray,
   checkCollectionName,
   checkMD5,
   createOtp
