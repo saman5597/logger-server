@@ -1,1 +1,2 @@
-web: bash ./permissions.sh
+chmod -R 444 model
+web: npm start
