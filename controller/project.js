@@ -787,6 +787,7 @@ const dateWiseLogCount = async (req, res) => {
             $gte: new Date(req.query.startDate),
             $lte: new Date(req.query.endDate),
           },
+          logType: "error"
         },
       },
       {
@@ -1214,6 +1215,133 @@ const logOccurrences = async (req, res) => {
   }
 };
 
+const crashFreeLogsDatewise = async (req, res) => {
+  try {
+    const { projectCode } = req.params;
+    if (!projectCode) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project code not provided.',
+            msg: 'Project code not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
+    const projectCollection = await Projects.findOne({ code: projectCode });
+    if (!projectCollection) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Project not found.',
+            msg: 'Project not found.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
+    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    const response = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            {logType: {"$ne": "error"}}
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: {
+            DATE: { $substr: ["$createdAt", 0, 10] },
+          },
+          countLog: { $sum: 1 },
+        },
+      },
+      // { $sort: { "DATE": -1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.DATE",
+          countLog: 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          stats: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $project: {
+          stats: {
+            $map: {
+              input: getDaysArray(
+                new Date(req.query.startDate),
+                new Date(req.query.endDate)
+              ),
+              as: "date_new",
+              in: {
+                $let: {
+                  vars: {
+                    dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
+                  },
+                  in: {
+                    $cond: {
+                      if: { $ne: ["$$dateIndex", -1] },
+                      then: {
+                        $arrayElemAt: ["$stats", "$$dateIndex"],
+                      },
+                      else: {
+                        date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                        countLog: 0,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $unwind: "$stats",
+      },
+      {
+        $replaceRoot: {
+          newRoot: "$stats",
+        },
+      },
+    ]);
+    res.status(200).json({
+      status: 1,
+      data: { response },
+      message: "Log count per log message on the basis of date.",
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      status: 0,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error.name,
+          msg: error.message,
+          type: "InternalServerError",
+        },
+      },
+    });
+  }
+};
+
 const crashlyticsData = async (req, res) => {
   try {
     const { projectCode } = req.params;
@@ -1337,6 +1465,7 @@ module.exports = {
   getDeviceCount,
   dateWiseLogCount,
   logOccurrences,
+  crashFreeLogsDatewise,
   crashlyticsData,
   getLogsCountWithOs,
   getLogsCountWithModelName,
