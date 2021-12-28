@@ -1315,14 +1315,14 @@ const crashFreeUsersDatewise = async (req, res) => {
           },
         },
       },
-      // {
-      //   $unwind: "$stats",
-      // },
-      // {
-      //   $replaceRoot: {
-      //     newRoot: "$stats",
-      //   },
-      // },
+      {
+        $unwind: "$stats",
+      },
+      {
+        $replaceRoot: {
+          newRoot: "$stats",
+        },
+      },
     ]);
     res.status(200).json({
       status: 1,
