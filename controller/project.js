@@ -1215,7 +1215,7 @@ const logOccurrences = async (req, res) => {
   }
 };
 
-const crashFreeLogsDatewise = async (req, res) => {
+const crashFreeUsersDatewise = async (req, res) => {
   try {
     const { projectCode } = req.params;
     if (!projectCode) {
@@ -1468,7 +1468,7 @@ module.exports = {
   getDeviceCount,
   dateWiseLogCount,
   logOccurrences,
-  crashFreeLogsDatewise,
+  crashFreeUsersDatewise,
   crashlyticsData,
   getLogsCountWithOs,
   getLogsCountWithModelName,

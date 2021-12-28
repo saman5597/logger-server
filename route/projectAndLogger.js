@@ -13,7 +13,7 @@ const {
     getDeviceCount,
     dateWiseLogCount,
     logOccurrences,
-    crashFreeLogsDatewise,
+    crashFreeUsersDatewise,
     crashlyticsData,
     getLogsCountWithOs,
     getLogsCountWithModelName,
@@ -42,7 +42,7 @@ router.get('/getErrorCountByVersion/:projectCode',authUser,getErrorCountByVersio
 router.get('/getDeviceCount/:projectCode',authUser,getDeviceCount)
 router.get('/datewiselogcount/:projectCode',authUser,dateWiseLogCount)
 router.get('/log-occurrences-datewise/:projectCode',authUser,logOccurrences)
-router.get('/crashfree-logs-datewise/:projectCode', authUser, crashFreeLogsDatewise)
+router.get('/crashfree-users-datewise/:projectCode', authUser, crashFreeUsersDatewise)
 router.get('/get-crashlytics-data/:projectCode', authUser, crashlyticsData)
 router.get('/getErrorCountByOSArchitecture/:projectCode',authUser,getErrorCountByOSArchitecture)
 router.get('/getLogsCountWithOs/:projectCode',authUser,getLogsCountWithOs)
