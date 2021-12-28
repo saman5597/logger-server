@@ -1262,15 +1262,17 @@ const crashFreeLogsDatewise = async (req, res) => {
         $group: {
           _id: {
             DATE: { $substr: ["$createdAt", 0, 10] },
+            did: "$did"
           },
           countLog: { $sum: 1 },
         },
       },
-      // { $sort: { "DATE": -1 } },
+      // // { $sort: { "DATE": -1 } },
       {
         $project: {
           _id: 0,
           date: "$_id.DATE",
+          did: "$_id.did",
           countLog: 1,
         },
       },
@@ -1302,6 +1304,7 @@ const crashFreeLogsDatewise = async (req, res) => {
                       },
                       else: {
                         date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                        did: null,
                         countLog: 0,
                       },
                     },
@@ -1312,14 +1315,14 @@ const crashFreeLogsDatewise = async (req, res) => {
           },
         },
       },
-      {
-        $unwind: "$stats",
-      },
-      {
-        $replaceRoot: {
-          newRoot: "$stats",
-        },
-      },
+      // {
+      //   $unwind: "$stats",
+      // },
+      // {
+      //   $replaceRoot: {
+      //     newRoot: "$stats",
+      //   },
+      // },
     ]);
     res.status(200).json({
       status: 1,
