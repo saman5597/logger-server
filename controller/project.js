@@ -595,12 +595,32 @@ const getProjectLogs = async (req, res) => {
         message: "Project code invalid ",
       };
 
+    if (!req.query.startDate || !req.query.endDate) {
+      throw {
+        message : "Provide start date and end date."
+      }
+    }
+
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
+      { $match: {
+          createdAt: {
+            $gte: new Date(req.query.startDate),
+            $lte: new Date(req.query.endDate),
+        } 
+      }
+      },
       { $group: { _id: "$logType", count: { $sum: 1 } } },
       { $project: { logType: "$_id", count: 1, _id: 0 } },
     ]);
     const totalLogCount = await collectionName.aggregate([
+      { $match: {
+          createdAt: {
+            $gte: new Date(req.query.startDate),
+            $lte: new Date(req.query.endDate),
+         } 
+        }
+      },
       { $group: { _id: "null", count: { $sum: 1 } } },
     ]);
     const lastLogEntry = await collectionName.findOne().sort({ createdAt: -1 });
