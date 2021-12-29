@@ -1118,6 +1118,20 @@ const logOccurrences = async (req, res) => {
         },
       });
     }
+
+    if (!req.query.logMsg) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: 'Log message not provided.',
+            msg: 'Log message not provided.',
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
