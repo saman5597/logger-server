@@ -628,13 +628,14 @@ const getProjectLogs = async (req, res) => {
     return res.status(200).json({
       status: 1,
       data: {
-        totalLogCount: totalLogCount[0].count,
+        totalLogCount: totalLogCount.length ? totalLogCount[0].count : null,
         typeWiseCount,
         lastLogEntry: lastLogEntry.createdAt,
       },
       message: "successfull",
     });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({
       status: 0,
       data: {
