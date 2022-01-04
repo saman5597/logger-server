@@ -506,12 +506,12 @@ const getProjectWithFilter = async (req, res) => {
     // const totalCount = await collectionName.estimatedDocumentCount({})
     const countObjQuery = new QueryHelper(collectionName.find({}), req.query)
       .filter()
-      .logFilter();
+      // .logFilter();
     const countObj = await countObjQuery.query;
     const features = new QueryHelper(collectionName.find({}), req.query)
       .filter()
       .sort()
-      .logFilter()
+      // .logFilter()
       .paginate();
     logs = await features.query;
 
