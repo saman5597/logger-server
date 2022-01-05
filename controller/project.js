@@ -816,7 +816,7 @@ const dateWiseLogCount = async (req, res) => {
           _id: {
             DATE: { $substr: ["$createdAt", 0, 10] },
           },
-          countLog: { $sum: 1 },
+          data: { $sum: 1 },
         },
       },
       // { $sort: { "DATE": -1 } },
@@ -824,7 +824,7 @@ const dateWiseLogCount = async (req, res) => {
         $project: {
           _id: 0,
           date: "$_id.DATE",
-          countLog: 1,
+          data: 1,
         },
       },
       {
@@ -855,7 +855,7 @@ const dateWiseLogCount = async (req, res) => {
                       },
                       else: {
                         date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
-                        countLog: 0,
+                        data: 0,
                       },
                     },
                   },
@@ -1171,7 +1171,7 @@ const logOccurrences = async (req, res) => {
           _id: {
             DATE: { $substr: ["$createdAt", 0, 10] },
           },
-          countLog: { $sum: 1 },
+          data: { $sum: 1 },
         },
       },
       // { $sort: { "DATE": -1 } },
@@ -1179,7 +1179,7 @@ const logOccurrences = async (req, res) => {
         $project: {
           _id: 0,
           date: "$_id.DATE",
-          countLog: 1,
+          data: 1,
         },
       },
       {
@@ -1210,7 +1210,7 @@ const logOccurrences = async (req, res) => {
                       },
                       else: {
                         date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
-                        countLog: 0,
+                        data: 0,
                       },
                     },
                   },
@@ -1281,6 +1281,24 @@ const crashFreeUsersDatewise = async (req, res) => {
       });
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    const countResponse = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            {logType: {"$ne": "error"}}
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: "$did"
+        }
+      }
+    ]);
     const response = await collectionName.aggregate([
       {
         $match: {
@@ -1299,7 +1317,7 @@ const crashFreeUsersDatewise = async (req, res) => {
             DATE: { $substr: ["$createdAt", 0, 10] },
             did: "$did"
           },
-          countLog: { $sum: 1 },
+          data: { $sum: 1 },
         },
       },
       // // { $sort: { "DATE": -1 } },
@@ -1308,7 +1326,7 @@ const crashFreeUsersDatewise = async (req, res) => {
           _id: 0,
           date: "$_id.DATE",
           did: "$_id.did",
-          countLog: 1,
+          data: 1,
         },
       },
       {
@@ -1340,7 +1358,7 @@ const crashFreeUsersDatewise = async (req, res) => {
                       else: {
                         date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
                         did: null,
-                        countLog: 0,
+                        data: 0,
                       },
                     },
                   },
@@ -1361,7 +1379,7 @@ const crashFreeUsersDatewise = async (req, res) => {
     ]);
     res.status(200).json({
       status: 1,
-      data: { response },
+      data: { response, count : countResponse.length || 0  },
       message: "Log count per log message on the basis of date.",
     });
   } catch (error) {
@@ -1427,7 +1445,7 @@ const crashlyticsData = async (req, res) => {
       {
         $group: {
           _id: "$version",
-          countLog: { $sum : 1}
+          data: { $sum : 1}
         },
       }
     ]);
@@ -1446,7 +1464,7 @@ const crashlyticsData = async (req, res) => {
       {
         $group: {
           _id: "$osArchitecture",
-          countLog: { $sum : 1}
+          data: { $sum : 1}
         },
       }
     ]);
@@ -1465,7 +1483,7 @@ const crashlyticsData = async (req, res) => {
       {
         $group: {
           _id: "$modelName",
-          countLog: { $sum : 1}
+          data: { $sum : 1}
         },
       }
     ]);
