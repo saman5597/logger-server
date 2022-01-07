@@ -12,9 +12,10 @@ var transport = nodemailer.createTransport({
     }
 });
 
-const sendEmail = (otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'support@loggerserver.com',next)=>{
+const sendEmail = ({otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'support@logcat.com',next})=>{
     try {
         if(!from || !to || !msg || !otp) throw 'Provide the field for email...';
+        console.log(otp)
 
         const mail = {
             from,
@@ -26,7 +27,7 @@ const sendEmail = (otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'suppor
 
         transport.sendMail(mail, (error,info)=>{
             if(error) console.log(`Mail fail ${error}`);
-            console.log(`Mail send ${info}`);
+            // console.log(`Mail send ${[...info]}`);
         })
         next();
     } catch (error) {
