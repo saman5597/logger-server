@@ -16,7 +16,7 @@ const forgetPasswordSchema = mongoose.Schema({
 },
 {timestamps:true});
 
-forgetPasswordSchema.index({createdAt: 1},{expireAfterSeconds: 20});
+forgetPasswordSchema.index({createdAt: 1},{expireAfterSeconds: 300});
 
 const ForgetPassword = mongoose.model('ForgetPassword',forgetPasswordSchema);
 
