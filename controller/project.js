@@ -801,6 +801,24 @@ const dateWiseLogCount = async (req, res) => {
       });
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+    const countResponse = await collectionName.aggregate([
+      {
+        $match: {
+          $and: [
+            { createdAt: {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            } },
+            // {logType: {"$ne": "error"}}
+         ]
+        },
+      },
+      {
+        $group: {
+          _id: "$did"
+        }
+      }
+    ]);
     const response = await collectionName.aggregate([
       {
         $match: {
@@ -876,7 +894,7 @@ const dateWiseLogCount = async (req, res) => {
     ]);
     res.status(200).json({
       status: 1,
-      data: { response },
+      data: { response, count : countResponse.length || 0 },
       message: "Log count on the basis of date.",
     });
   } catch (error) {
