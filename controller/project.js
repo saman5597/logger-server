@@ -1422,8 +1422,8 @@ const crashlyticsData = async (req, res) => {
     var trimmedLogMsg;
     if (req.query.logMsg.length > 50) {
       trimmedLogMsg = req.query.logMsg.substring(0, 50);
-    }
-    console.log(trimmedLogMsg)
+    } else trimmedLogMsg = req.query.logMsg
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
