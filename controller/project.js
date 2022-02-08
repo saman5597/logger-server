@@ -1419,6 +1419,11 @@ const crashFreeUsersDatewise = async (req, res) => {
 const crashlyticsData = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    var trimmedLogMsg;
+    if (req.query.logMsg.length > 50) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    }
+    console.log(trimmedLogMsg)
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1456,7 +1461,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { logMsg: {$regex : req.query.logMsg}  }
+            { logMsg: {$regex : trimmedLogMsg}  }
          ]
         },
       },
@@ -1475,7 +1480,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { logMsg: {$regex : req.query.logMsg}  }
+            { logMsg: {$regex : trimmedLogMsg}  }
          ]
         },
       },
@@ -1494,7 +1499,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { logMsg: {$regex : req.query.logMsg}  }
+            { logMsg: {$regex : trimmedLogMsg}  }
          ]
         },
       },
