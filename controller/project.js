@@ -1178,8 +1178,8 @@ const logOccurrences = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.querylogMsg.length > 50) {
-      trimmedLogMsg = req.querylogMsg.substring(0, 50);
+    if (req.query.logMsg.length > 50) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 50);
     } else trimmedLogMsg = req.querylogMsg
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
