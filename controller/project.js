@@ -1060,7 +1060,7 @@ const getlogMsgOccurence = async (req, res)=>{
     }
 
     const { msg } = req.query;
-    if (!msg) {
+    if (!req.query.msg) {
       return res.status(404).json({
         status: 0,
         data: {
@@ -1073,6 +1073,11 @@ const getlogMsgOccurence = async (req, res)=>{
         },
       });
     }
+
+    var trimmedLogMsg;
+    if (req.query.msg.length > 50) {
+      trimmedLogMsg = req.query.msg.substring(0, 50);
+    } else trimmedLogMsg = req.query.msg
     
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
@@ -1096,7 +1101,7 @@ const getlogMsgOccurence = async (req, res)=>{
       $match: {
         $and:[
           // {did:req.query.macId },
-          {logMsg:{$regex:msg}},
+          {logMsg:{$regex:trimmedLogMsg}},
           {logType: "error"}
         ]
       }
@@ -1171,6 +1176,12 @@ const logOccurrences = async (req, res) => {
         },
       });
     }
+
+    var trimmedLogMsg;
+    if (req.querylogMsg.length > 50) {
+      trimmedLogMsg = req.querylogMsg.substring(0, 50);
+    } else trimmedLogMsg = req.querylogMsg
+
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -1180,7 +1191,7 @@ const logOccurrences = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { logMsg: {$regex : req.query.logMsg}  }
+            { logMsg: {$regex : trimmedLogMsg}  }
          ]
         },
       },
