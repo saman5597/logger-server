@@ -1180,7 +1180,7 @@ const logOccurrences = async (req, res) => {
     var trimmedLogMsg;
     if (req.query.logMsg.length > 50) {
       trimmedLogMsg = req.query.logMsg.substring(0, 50);
-    } else trimmedLogMsg = req.querylogMsg
+    } else trimmedLogMsg = req.query.logMsg
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
