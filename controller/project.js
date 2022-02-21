@@ -569,8 +569,10 @@ const getProjectLogs = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
-      { $match: {
-          createdAt: {
+      // {$unwind : '$log'},
+      {  
+        $match: {
+          'log.date': {
             $gte: new Date(req.query.startDate),
             $lte: new Date(req.query.endDate),
         },
@@ -581,8 +583,9 @@ const getProjectLogs = async (req, res) => {
       { $project: { logType: "$_id", count: 1, _id: 0 } },
     ]);
     const totalLogCount = await collectionName.aggregate([
+      // {$unwind : '$log'},
       { $match: {
-          createdAt: {
+          'log.date': {
             $gte: new Date(req.query.startDate),
             $lte: new Date(req.query.endDate),
          },
@@ -788,10 +791,11 @@ const dateWiseLogCount = async (req, res) => {
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const countResponse = await collectionName.aggregate([
+      // {$unwind : '$log'},
       {
         $match: {
           $and: [
-            { createdAt: {
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -813,9 +817,10 @@ const dateWiseLogCount = async (req, res) => {
       }
     ]);
     const response = await collectionName.aggregate([
+      // {$unwind : '$log'},
       {
         $match: {
-          createdAt: {
+          'log.date': {
             $gte: new Date(req.query.startDate),
             $lte: new Date(req.query.endDate),
           },
@@ -826,7 +831,7 @@ const dateWiseLogCount = async (req, res) => {
       {
         $group: {
           _id: {
-            DATE: { $substr: ["$createdAt", 0, 10] },
+            DATE: { $substr: ["$log.date", 0, 10] },
           },
           data: { $sum: 1 },
         },
@@ -1203,7 +1208,8 @@ const logOccurrences = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -1214,7 +1220,7 @@ const logOccurrences = async (req, res) => {
       {
         $group: {
           _id: {
-            DATE: { $substr: ["$createdAt", 0, 10] },
+            DATE: { $substr: ["$log.date", 0, 10] },
           },
           data: { $sum: 1 },
         },
@@ -1330,7 +1336,8 @@ const crashFreeUsersDatewise = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -1357,7 +1364,8 @@ const crashFreeUsersDatewise = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -1377,7 +1385,7 @@ const crashFreeUsersDatewise = async (req, res) => {
       {
         $group: {
           _id: {
-            DATE: { $substr: ["$createdAt", 0, 10] },
+            DATE: { $substr: ["$log.date", 0, 10] },
             did: "$device.did"
           },
           data: { $sum: 1 },
@@ -1503,7 +1511,8 @@ const crashlyticsData = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -1522,7 +1531,8 @@ const crashlyticsData = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
@@ -1549,7 +1559,8 @@ const crashlyticsData = async (req, res) => {
       {
         $match: {
           $and: [
-            { createdAt: {
+            // {$unwind : '$log'},
+            { 'log.date': {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
