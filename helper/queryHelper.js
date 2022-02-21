@@ -8,13 +8,14 @@ class QueryHelper {
         const queryObj = { ...this.queryStr };
         const excludedFields = ['page', 'sort', 'limit', 'fields'];
         excludedFields.forEach(el => delete queryObj[el]);
-
         if (queryObj.startDate && queryObj.endDate) {
-            queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: new Date(queryObj["endDate"]) }
+            let dt = new Date(queryObj["endDate"])
+            dt.setDate(dt.getDate()+1)
+            queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: dt }
         } else if (queryObj.startDate) {
             queryObj.createdAt = { gte: new Date(queryObj["startDate"]) }
         } else if (queryObj.endDate) {
-            queryObj.createdAt = { lte: new Date(queryObj["endDate"]) }
+            queryObj.createdAt = { lte: dt }
         }
 
         if (queryObj.logType) {
