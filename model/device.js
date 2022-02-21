@@ -41,7 +41,17 @@ const deviceSchema = mongoose.Schema(
     manufacturer: {
       type: String,
     },
-    OSArchitecture: [osSchema, "OS details are required"],
+    os: {
+      name: {
+        type: String,
+        required: [true,]
+      },
+      type: {
+        type: String,
+        enum: ["linux", "windows", "iOS", "other"]
+      },
+
+    },
     battery: {
       type: String,
       default: null,
