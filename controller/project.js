@@ -1069,8 +1069,8 @@ const getlogMsgOccurence = async (req, res)=>{
       });
     }
 
-    const { msg } = req.query;
-    if (!msg) {
+    // const { msg } = req.query;
+    if (!req.query.msg) {
       return res.status(404).json({
         status: 0,
         data: {
@@ -1083,6 +1083,11 @@ const getlogMsgOccurence = async (req, res)=>{
         },
       });
     }
+
+    var trimmedLogMsg;
+    if (req.query.msg.length > 50) {
+      trimmedLogMsg = req.query.msg.substring(0, 50);
+    } else trimmedLogMsg = req.query.msg
     
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
@@ -1106,7 +1111,7 @@ const getlogMsgOccurence = async (req, res)=>{
       $match: {
         $and:[
           // {did:req.query.macId },
-          {'log.message':{$regex:msg}},
+          {'log.message':{$regex:trimmedLogMsg}},
           {'log.type': "error"}
         ]
       },
@@ -1187,6 +1192,12 @@ const logOccurrences = async (req, res) => {
         },
       });
     }
+
+    var trimmedLogMsg;
+    if (req.query.logMsg.length > 50) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    } else trimmedLogMsg = req.query.logMsg
+
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -1196,7 +1207,7 @@ const logOccurrences = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : req.query.logMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  }
          ]
         },
       },
@@ -1453,6 +1464,12 @@ const crashFreeUsersDatewise = async (req, res) => {
 const crashlyticsData = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    var trimmedLogMsg;
+    if (req.query.logMsg.length > 50) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    } else trimmedLogMsg = req.query.logMsg
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1490,7 +1507,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : req.query.logMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  }
          ]
         },
       },
@@ -1509,7 +1526,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : req.query.logMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  }
          ]
         },
       },
@@ -1536,7 +1553,7 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : req.query.logMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  }
          ]
         },
       },
