@@ -14,7 +14,7 @@ const logsSchema = mongoose.Schema(
       type: String,
       required: [true, "Log message is required"],
     },
-    logType: {
+    type: {
       type: String,
       default: "info",
       enum: ["warn", "info", "error", "debug","verbose"],
