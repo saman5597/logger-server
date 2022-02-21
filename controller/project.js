@@ -434,7 +434,7 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    
+    console.log(error)
     res.status(400).json({
       status: 0,
       data: {

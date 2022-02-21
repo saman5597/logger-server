@@ -25,4 +25,4 @@ const logsSchema = mongoose.Schema(
 
 const log = mongoose.model("Log", logsSchema);
 
-module.exports = log;
+module.exports = logsSchema;
