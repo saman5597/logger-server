@@ -632,7 +632,7 @@ const getErrorCountByVersion = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
-      { $match: { 'log.type':"error" } },
+      { $match: { 'log.type':"error", type: req.query.projectType } },
       { $group: { _id: "$version", count: { $sum: 1 } } },
     ]);
 
@@ -678,7 +678,8 @@ const getErrorCountByOSArchitecture = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
-      { $match: { 'log.type': "error" } },
+      { $match: 
+        { 'log.type': "error" , type: req.query.projectType }},
       {
         $lookup: {
             from: "devices",
@@ -1117,7 +1118,8 @@ const getlogMsgOccurence = async (req, res)=>{
         $and:[
           // {did:req.query.macId },
           {'log.message':{$regex:trimmedLogMsg}},
-          {'log.type': "error"}
+          {'log.type': "error"},
+          {type : req.query.projectType}
         ]
       },
     },
@@ -1213,7 +1215,8 @@ const logOccurrences = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : trimmedLogMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  },
+            { type: req.query.projectType }
          ]
         },
       },
@@ -1516,7 +1519,8 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : trimmedLogMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  },
+            {type: req.query.projectType}
          ]
         },
       },
@@ -1536,7 +1540,8 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : trimmedLogMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  },
+            {type: req.query.projectType}
          ]
         },
       },
@@ -1564,7 +1569,8 @@ const crashlyticsData = async (req, res) => {
               $gte: new Date(req.query.startDate),
               $lte: new Date(req.query.endDate),
             } },
-            { 'log.message': {$regex : trimmedLogMsg}  }
+            { 'log.message': {$regex : trimmedLogMsg}  },
+            {type: req.query.projectType}
          ]
         },
       },
