@@ -25,6 +25,7 @@ class QueryHelper {
         let queryStr = JSON.stringify(queryObj);
         console.log(queryObj)
         queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+        queryStr = queryStr.replace("logType", "log.type")
         console.log(queryStr)
         this.query = this.query.find(JSON.parse(queryStr));
         return this;
@@ -49,17 +50,17 @@ class QueryHelper {
         return this;
     }
 
-    logFilter() {
-        const queryObj = { ...this.queryStr };
-        let result
-        if (queryObj.logType) {
-            result = (queryObj.logType).split('-');
-            this.query = this.query.find({ logType: result });
-        }
+    // logFilter() {
+    //     const queryObj = { ...this.queryStr };
+    //     let result
+    //     if (queryObj.logType) {
+    //         result = (queryObj.logType).split('-');
+    //         this.query = this.query.find({ logType: result });
+    //     }
 
-        return this;
+    //     return this;
 
-    }
+    // }
 }
 
 module.exports = QueryHelper;
