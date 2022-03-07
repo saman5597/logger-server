@@ -178,6 +178,8 @@ const createNewProject = async (req, res) => {
 const getProjectWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
+    // if not enter projectCode
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
