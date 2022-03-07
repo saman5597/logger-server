@@ -8,14 +8,14 @@ class QueryHelper {
         const queryObj = { ...this.queryStr };
         const excludedFields = ['page', 'sort', 'limit', 'fields'];
         excludedFields.forEach(el => delete queryObj[el]);
-        let dt = new Date(queryObj["endDate"])
-        dt.setDate(dt.getDate()+1)
+        // let dt = new Date(queryObj["endDate"])
+        // dt.setDate(dt.getDate()+1)
         if (queryObj.startDate && queryObj.endDate) {
-            queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: dt }
+            queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: new Date(queryObj["endDate"]) }
         } else if (queryObj.startDate) {
             queryObj.createdAt = { gte: new Date(queryObj["startDate"]) }
         } else if (queryObj.endDate) {
-            queryObj.createdAt = { lte: dt }
+            queryObj.createdAt = { lte: new Date(queryObj["endDate"]) }
         }
 
         if (queryObj.logType) {
@@ -26,6 +26,7 @@ class QueryHelper {
         console.log(queryObj)
         queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
         queryStr = queryStr.replace("logType", "log.type")
+        queryStr = queryStr.replace("createdAt", "log.date")
         console.log(queryStr)
         this.query = this.query.find(JSON.parse(queryStr));
         return this;
