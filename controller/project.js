@@ -644,7 +644,7 @@ const getProjectLogs = async (req, res) => {
       data: {
         totalLogCount: totalLogCount.length ? totalLogCount[0].count : null,
         typeWiseCount,
-        lastLogEntry: lastLogEntry.createdAt,
+        lastLogEntry: lastLogEntry ? lastLogEntry.createdAt : null
       },
       message: "successfull",
     });
