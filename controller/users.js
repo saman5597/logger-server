@@ -4,14 +4,13 @@ const bcrypt = require("bcrypt");
 
 const redis = require("redis");
 const url = require("url");
-const {sendEmail} = require("../helper/sendEmail");
-const {createOtp} = require('../helper/helperFunctions');
+const { sendEmail } = require("../helper/sendEmail");
+const { createOtp } = require("../helper/helperFunctions");
 
 const JWTR = require("jwt-redis").default;
 
-
 const Users = require("../model/users");
-const ForgetPassword = require("../model/forgetPassword")
+const ForgetPassword = require("../model/forgetPassword");
 const { ValidateEmail } = require("../helper/validatorMiddleware");
 const { validationResult } = require("express-validator");
 dotenv.config();
@@ -213,7 +212,8 @@ const userForgetPassword = async (req, res) => {
     // send email -> inside helper folder
     sendEmail({ otp, to: email, msg: `Hello ${user.name}` });
 
-    return res.status(200)
+    return res
+      .status(200)
       .json({ success: true, message: `Email send to you!` });
   } catch (error) {
     return res
@@ -233,8 +233,7 @@ const resetForgetPassword = async (req, res) => {
     // look for email
     // const email = req.cookies.email;
     const { email } = req.body;
-    if (!email)
-      throw "Provide email";
+    if (!email) throw "Provide email";
 
     // destructure to otp and password
     const { otp, password, passwordVerify } = req.body;
@@ -265,11 +264,13 @@ const resetForgetPassword = async (req, res) => {
       await ForgetPassword.deleteMany({ user: user._id });
 
       // delete cookie email and other token
-      return res
-        // .json("email", "", {
-        //   expires: new Date(0), // Date(0) means it set to 1/Jan/1970 00:00:00 hr.
-        // })
-        .json({ success: true, message: "password reset successfully" });
+      return (
+        res
+          // .json("email", "", {
+          //   expires: new Date(0), // Date(0) means it set to 1/Jan/1970 00:00:00 hr.
+          // })
+          .json({ success: true, message: "password reset successfully" })
+      );
     } else {
       throw "OTP does not match, try again!";
     }
@@ -289,8 +290,8 @@ const logoutUser = async (req, res) => {
       .json({ status: 1, data: {}, message: "Logged out successfully!" });
     // return res.json({'message':'Logged out successfully!','token':token});
   } catch (error) {
-    if (process.env.NODE_ENV == 'DEVELOPMENT') {
-      console.log(error)
+    if (process.env.NODE_ENV == "DEVELOPMENT") {
+      console.log(error);
     }
     return res.status(500).json({
       status: 0,
