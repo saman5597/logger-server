@@ -589,9 +589,23 @@ const getProjectLogs = async (req, res) => {
         message: "Project code invalid ",
       };
 
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill. ",
+      };
+    }
+
     if (!req.query.startDate || !req.query.endDate) {
       throw {
         message: "Provide start date and end date.",
+      };
+    }
+
+    // console.log("req query",req.params)
+
+    if (!req.params.projectCode) {
+      throw {
+        message: "project type require to fill.",
       };
     }
 
@@ -654,6 +668,13 @@ const getErrorCountByVersion = async (req, res) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!isProjectExist)
       throw {
         message: "Project code invalid ",
@@ -700,6 +721,13 @@ const getErrorCountByOSArchitecture = async (req, res) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!isProjectExist)
       throw {
         message: "Project code invalid ",
@@ -794,6 +822,13 @@ const getDeviceCount = async (req, res) => {
 const dateWiseLogCount = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1098,6 +1133,13 @@ const getLogsCountWithModelName = async (req, res) => {
 const getlogMsgOccurence = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1196,6 +1238,13 @@ const getlogMsgOccurence = async (req, res) => {
 const logOccurrences = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1347,6 +1396,13 @@ const logOccurrences = async (req, res) => {
 const crashFreeUsersDatewise = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
+
     if (!projectCode) {
       return res.status(404).json({
         status: 0,
@@ -1519,6 +1575,12 @@ const crashFreeUsersDatewise = async (req, res) => {
 const crashlyticsData = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.query.projectType) {
+      throw {
+        message: "project type require to fill.",
+      };
+    }
 
     var trimmedLogMsg;
     if (req.query.logMsg.length > 50) {
