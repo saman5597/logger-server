@@ -169,6 +169,7 @@ const loginUser = async (req, res) => {
       data: {
         token: token,
         name: isUserExist.name,
+        email: isUserExist.email,
         isSuperAdmin: isUserExist.isSuperAdmin,
       },
     });

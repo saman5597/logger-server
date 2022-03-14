@@ -591,7 +591,7 @@ const getProjectLogs = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill. ",
+        message: "project type is required ",
       };
     }
 
@@ -605,7 +605,7 @@ const getProjectLogs = async (req, res) => {
 
     if (!req.params.projectCode) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -671,7 +671,7 @@ const getErrorCountByVersion = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -724,7 +724,7 @@ const getErrorCountByOSArchitecture = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -825,7 +825,7 @@ const dateWiseLogCount = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -1136,7 +1136,7 @@ const getlogMsgOccurence = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -1241,7 +1241,7 @@ const logOccurrences = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -1399,7 +1399,7 @@ const crashFreeUsersDatewise = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
@@ -1578,7 +1578,7 @@ const crashlyticsData = async (req, res) => {
 
     if (!req.query.projectType) {
       throw {
-        message: "project type require to fill.",
+        message: "project type is required",
       };
     }
 
