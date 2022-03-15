@@ -6,6 +6,7 @@ const {
     makeEntriesInDeviceLogger,
     getProjectWithProjectCode,
     updateProjectWithProjectCode,
+    addEmailWithProjectCode,
     getProjectWithFilter,
     getdeviceIdProjectWise,
     getProjectLogs,
@@ -35,6 +36,7 @@ router.get('/',authUser,getAllRegisterProject);
 router.post('/',authUser,restrictToRole,createNewProject)
 router.get('/:projectCode',authUser, getProjectWithProjectCode)
 router.put('/:projectCode',authUser, updateProjectWithProjectCode)
+router.put('/updateEmail/:projectCode', addEmailWithProjectCode)
 router.get('/getDetail/:projectCode',authUser,getProjectWithFilter)
 router.get('/getIds/:projectCode',authUser,getdeviceIdProjectWise)
 router.get('/getLogsCount/:projectCode',authUser,getProjectLogs)

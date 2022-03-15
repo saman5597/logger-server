@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const Projects = require("../model/project");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
+const ValidateHelper = require("../helper/validatorMiddleware");
 const fs = require("fs");
 dotenv.config();
 
@@ -13,6 +14,7 @@ const {
   checkCollectionName,
   getDaysArray,
 } = require("../helper/helperFunctions");
+const project = require("../model/project");
 // const { type } = require("express/lib/response");
 
 /**
@@ -324,8 +326,8 @@ const updateProjectWithProjectCode = async (req, res) => {
         },
         (err) => {
           if (err)
-            throw { message: "Some error occured during project creation" };
-          console.log("File update successfully");
+            throw { message: "Some error occured during project updation" };
+          console.log("File update failed");
         }
       );
     }
@@ -349,7 +351,7 @@ const updateProjectWithProjectCode = async (req, res) => {
     res.status(200).json({
       status: 1,
       data: {},
-      message: "Project Updated!!",
+      message: "Project details Updated!!",
     });
   } catch (error) {
     res.status(400).json({
@@ -365,6 +367,61 @@ const updateProjectWithProjectCode = async (req, res) => {
     });
   }
 };
+
+
+const addEmailWithProjectCode = async (req, res) => {
+  try {
+    const { projectCode } = req.params;
+    console.log(req.body);
+    const {email} = req.body;
+    if (!email) throw "No email available."
+
+    let emailError = []
+    email.map((em)=>{
+      if(!ValidateHelper.ValidateEmail(em)) throw "Check entered emails."
+      if(!emailError.includes(em)) {
+        emailError.push(em)
+      }
+    })
+
+    const getProjectWithProjectCode = await Projects.findOne({
+      code: projectCode,
+    });
+
+    if (!getProjectWithProjectCode) throw "Project does not exist."
+
+  getProjectWithProjectCode.reportEmail = [...emailError];
+
+  const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
+
+  if (!isGetProjectWithProjectCodeSaved)
+      throw {
+        status: 0,
+        message: "Some error occured during updating the project!!",
+      };
+
+      res.status(200).json({
+        status: 1,
+        data: {},
+        message: "Project details 2 Updated!!",
+      });
+
+  } catch (error) {
+    console.log("catch error: ",error)
+    res.status(400).json({
+      status: 0,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error,
+          msg: error.message,
+          type: "ProjectUpdateError",
+        },
+      },
+    });
+  }
+}
+
 
 const makeEntriesInDeviceLogger = async (req, res) => {
   try {
@@ -1728,6 +1785,7 @@ module.exports = {
   makeEntriesInDeviceLogger,
   getProjectWithProjectCode,
   updateProjectWithProjectCode,
+  addEmailWithProjectCode,
   getProjectWithFilter,
   getdeviceIdProjectWise,
   getProjectLogs,
