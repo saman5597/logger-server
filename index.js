@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const dotenv = require('dotenv')
 const cors = require('cors')
 const connectDB = require('./config/db.js')
+const morgan = require('morgan')
 
 dotenv.config();
 
@@ -16,6 +17,7 @@ connectDB();
 
 const app = express();
 app.enable('trust proxy')
+app.use(morgan('tiny'))
 app.use(cors())
 app.use(express.json({limit:"30mb",extended:true}))
 app.use(express.urlencoded({limit:"30mb",extended:true}))
