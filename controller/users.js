@@ -308,10 +308,84 @@ const logoutUser = async (req, res) => {
   }
 };
 
+// update user profile
+const userPasswordChagne = async (req, res) => {
+  try {
+    var { currentPassword, newPassword } = req.body;
+    // console.log(currentPassword);
+
+    //  currentPassword could not be empty -----
+    if (!currentPassword) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            errMsg: "Current password should not be empty",
+            type: "LoginError",
+          },
+        },
+      });
+    }
+    //  new password could not be empty -----
+    if (!newPassword) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            errMsg: "new password should not be empty",
+            type: "LoginError",
+          },
+        },
+      });
+    }
+    //  new password should not match current password -----
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            errMsg: "Current and new password should be same",
+            type: "LoginError",
+          },
+        },
+      });
+    }
+
+    const user = await Users.findById(req.user);
+    // console.log(user)
+    console.log("user before save", user);
+
+    const salt = await bcrypt.genSalt();
+
+    //  current password correct checking -----
+    const passwordCompare = await bcrypt.compare(
+      currentPassword,
+      user.passwordHash
+    );
+    if (!passwordCompare) {
+      res.json({ success: false, message: "passwords do not match" });
+    }
+
+    // checking new password and hashing it
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+    // console.log("password", newPasswordHash);
+    user.passwordHash = newPasswordHash;
+    await user.save();
+    console.log("user after save", user);
+
+    return res
+      .status(200)
+      .json({ status: 1, data: {}, message: "Password changed successfully!" });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   logoutUser,
   userForgetPassword,
   resetForgetPassword,
+  userPasswordChagne,
 };
