@@ -1,33 +1,38 @@
-const express = require('express')
+const express = require("express");
 const router = express.Router();
 
-const {check} = require('express-validator')
+const { check } = require("express-validator");
 
 const {
-    registerUser,
-    loginUser,
-    logoutUser,
-    userForgetPassword,
-    resetForgetPassword
-} = require('../controller/users.js')
+  registerUser,
+  loginUser,
+  logoutUser,
+  userForgetPassword,
+  resetForgetPassword,
+  userPasswordChagne,
+} = require("../controller/users.js");
 
-const {
-    authUser
-} = require('../middleware/authenticate')
+const { authUser } = require("../middleware/authenticate");
 
-const middlewares = [check('email').isEmail().normalizeEmail(), check('password').trim().isLength(5)]
+const middlewares = [
+  check("email").isEmail().normalizeEmail(),
+  check("password").trim().isLength(5),
+];
 // Unprotected
-router.post('/login', loginUser)
-router.post('/register',registerUser)
+router.post("/login", loginUser);
+router.post("/register", registerUser);
 // router.get('/login',(req,res)=>res.send("req receive successfully!!!"))
 
-router.post('/forget',userForgetPassword);
+router.post("/forget", userForgetPassword);
 
 // Token access
-router.post('/resetPassword',resetForgetPassword)
+router.post("/resetPassword", resetForgetPassword);
 
 // Protected
-router.get('/logout',authUser,logoutUser)
+router.get("/logout", authUser, logoutUser);
+
+// updated user route
+router.put("/changepassword", authUser, userPasswordChagne);
 
 
 
