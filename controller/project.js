@@ -475,7 +475,7 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       log: {
         file: log.file,
         date: log.date,
-        message: log.msg,
+        message: decodeURI(log.msg),
         type: log.type,
       },
     });
