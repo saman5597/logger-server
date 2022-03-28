@@ -399,11 +399,18 @@ const addEmailWithProjectCode = async (req, res) => {
         message: "Some error occured during updating the project!!",
       };
 
-    res.status(200).json({
-      status: 1,
-      data: {},
-      message: "Project details 2 Updated!!",
-    });
+
+      const emailList = await Projects.findOne({
+        code: projectCode,
+      },{reportEmail:1,_id:0});
+
+      res.status(200).json({
+        status: 1,
+        data: emailList,
+        message: "Project details Updated!!",
+      });
+
+
   } catch (error) {
     console.log("catch error: ", error);
     res.status(400).json({

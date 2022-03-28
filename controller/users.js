@@ -6,6 +6,7 @@ const redis = require("redis");
 const url = require("url");
 const { sendEmail } = require("../helper/sendEmail");
 const { createOtp } = require("../helper/helperFunctions");
+const {uploadFile,deleteFile,updateFile} = require("../helper/fileHelper");
 
 const JWTR = require("jwt-redis").default;
 
@@ -50,13 +51,14 @@ const registerUser = async (req, res) => {
         email,
         isSuperAdmin: false,
         passwordHash,
+        image:""
       });
       const savedUser = await user.save(user);
 
       if (savedUser) {
         res.status(201).json({
           status: 1,
-          data: { name: savedUser.name },
+          data: { name: savedUser.name, avatar:savedUser.image },
           message: "Registration successfull!",
         });
       } else
@@ -185,6 +187,80 @@ const loginUser = async (req, res) => {
         },
       },
     });
+  }
+};
+
+const updateUserProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    if (req.files) {
+      var {image} = req.files
+    }
+    
+    const validateEmail = ValidateEmail(email);
+    
+    if (!validateEmail)
+    throw {
+      status: 0,
+      message: "Email invalid",
+      errorMessage: "Email not valid",
+    };
+    
+    const user = await Users.findOne({email:email});
+    if (!user)
+      throw {
+        status: 200,
+        message: "User does not found",
+      };
+
+    if (!name)
+      throw {
+        status: 404,
+        message: "Provide field to update",
+      };
+
+    // uploading image if exists
+    let filenameToStore = "";
+    console.log(image)
+    if (req.files) {
+      if (user.image) {
+        filenameToStore = updateFile(req, "user_image", user.image);
+      } else {
+        filenameToStore = updateFile(req, "user_image", image.name);
+      }
+    }else{
+      filenameToStore = deleteFile("user_image", user.image);
+    }
+    // return res.status(200).json({done:filenameToStore})
+
+    
+    // store data in DB
+    user.name = name || user.name;
+    user.image = filenameToStore ;
+    // user.image = filenameToStore != "" ? filenameToStore : !user.image ? "ddUserDefaultIcon.png" : user.image;
+    const isSaved = user.save();
+    console.log("image: ",isSaved)
+    if (!isSaved)
+      throw {
+        status: 404,
+        message: "User profile update fail",
+      };
+
+    return res.status(200).json({ message: "Product Updated successfully!" });
+  } catch (error) {
+    console.log("error",error)
+    return res.status(500).json("error catch")
+    // return res.status(error.status).json({
+    //   status: 0,
+    //   data: {
+    //     err: {
+    //       generatedTime: new Date(),
+    //       errMsg: error.name,
+    //       msg: error.message,
+    //       type: "LogoutError",
+    //     },
+    //   },
+    // });
   }
 };
 
@@ -384,6 +460,7 @@ const userPasswordChagne = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  updateUserProfile,
   logoutUser,
   userForgetPassword,
   resetForgetPassword,
