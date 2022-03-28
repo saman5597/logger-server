@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
+const morgan = require("morgan")
 
 const redis = require("redis");
 const url = require("url");

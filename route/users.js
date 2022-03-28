@@ -9,7 +9,7 @@ const {
     updateUserProfile,
     logoutUser,
     userForgetPassword,
-    resetForgetPassword
+    resetForgetPassword,
     userPasswordChagne,
 } = require('../controller/users.js')
 
