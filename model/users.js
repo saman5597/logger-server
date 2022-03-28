@@ -10,6 +10,10 @@ const userSchema = mongoose.Schema({
         type:Boolean,
         default: true
     },
+    image:{
+        type:String,
+        default:null
+    },
     email:{
         type:String,
         unique: true,

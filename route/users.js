@@ -6,6 +6,7 @@ const {check} = require('express-validator')
 const {
     registerUser,
     loginUser,
+    updateUserProfile,
     logoutUser,
     userForgetPassword,
     resetForgetPassword
@@ -19,6 +20,7 @@ const middlewares = [check('email').isEmail().normalizeEmail(), check('password'
 // Unprotected
 router.post('/login', loginUser)
 router.post('/register',registerUser)
+
 // router.get('/login',(req,res)=>res.send("req receive successfully!!!"))
 
 router.post('/forget',userForgetPassword);
@@ -28,6 +30,7 @@ router.post('/resetPassword',resetForgetPassword)
 
 // Protected
 router.get('/logout',authUser,logoutUser)
+router.put('/update',updateUserProfile)
 
 
 
