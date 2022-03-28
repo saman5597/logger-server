@@ -368,37 +368,37 @@ const updateProjectWithProjectCode = async (req, res) => {
   }
 };
 
-
 const addEmailWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
     console.log(req.body);
-    const {email} = req.body;
-    if (!email) throw "No email available."
+    const { email } = req.body;
+    if (!email) throw "No email available.";
 
-    let emailError = []
-    email.map((em)=>{
-      if(!ValidateHelper.ValidateEmail(em)) throw "Check entered emails."
-      if(!emailError.includes(em)) {
-        emailError.push(em)
+    let emailError = [];
+    email.map((em) => {
+      if (!ValidateHelper.ValidateEmail(em)) throw "Check entered emails.";
+      if (!emailError.includes(em)) {
+        emailError.push(em);
       }
-    })
+    });
 
     const getProjectWithProjectCode = await Projects.findOne({
       code: projectCode,
     });
 
-    if (!getProjectWithProjectCode) throw "Project does not exist."
+    if (!getProjectWithProjectCode) throw "Project does not exist.";
 
-  getProjectWithProjectCode.reportEmail = [...emailError];
+    getProjectWithProjectCode.reportEmail = [...emailError];
 
-  const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
+    const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
-  if (!isGetProjectWithProjectCodeSaved)
+    if (!isGetProjectWithProjectCodeSaved)
       throw {
         status: 0,
         message: "Some error occured during updating the project!!",
       };
+
 
       const emailList = await Projects.findOne({
         code: projectCode,
@@ -410,8 +410,9 @@ const addEmailWithProjectCode = async (req, res) => {
         message: "Project details Updated!!",
       });
 
+
   } catch (error) {
-    console.log("catch error: ",error)
+    console.log("catch error: ", error);
     res.status(400).json({
       status: 0,
       data: {
@@ -424,8 +425,7 @@ const addEmailWithProjectCode = async (req, res) => {
       },
     });
   }
-}
-
+};
 
 const makeEntriesInDeviceLogger = async (req, res) => {
   try {
@@ -454,6 +454,8 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       device,
     } = req.body;
 
+    console.log("logMsg", log.msg);
+
     //  above details will be put in project tables
 
     //  Make entries in Device
@@ -479,12 +481,13 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       log: {
         file: log.file,
         date: log.date,
-        message: log.msg,
+        message: decodeURI(log.msg),
         type: log.type,
       },
     });
 
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+    console.log("isLoggerSaved", isLoggerSaved);
     // console.log(putDataIntoLoggerDb);
     if (!isLoggerSaved)
       throw {
@@ -705,7 +708,7 @@ const getProjectLogs = async (req, res) => {
       data: {
         totalLogCount: totalLogCount.length ? totalLogCount[0].count : null,
         typeWiseCount,
-        lastLogEntry: lastLogEntry ? lastLogEntry.createdAt : null
+        lastLogEntry: lastLogEntry ? lastLogEntry.createdAt : null,
       },
       message: "successfull",
     });
