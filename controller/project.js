@@ -400,15 +400,15 @@ const addEmailWithProjectCode = async (req, res) => {
       };
 
 
-      const emailList = await Projects.findOne({
-        code: projectCode,
-      },{reportEmail:1,_id:0});
+    const emailList = await Projects.findOne({
+      code: projectCode,
+    }, { reportEmail: 1, _id: 0 });
 
-      res.status(200).json({
-        status: 1,
-        data: emailList,
-        message: "Project details Updated!!",
-      });
+    res.status(200).json({
+      status: 1,
+      data: emailList,
+      message: "Project details Updated!!",
+    });
 
 
   } catch (error) {
@@ -1234,8 +1234,8 @@ const getlogMsgOccurence = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.msg.length > 50) {
-      trimmedLogMsg = req.query.msg.substring(0, 50);
+    if (req.query.msg.length > 26) {
+      trimmedLogMsg = req.query.msg.substring(0, 26);
     } else trimmedLogMsg = req.query.msg;
 
     const projectCollection = await Projects.findOne({ code: projectCode });
@@ -1352,10 +1352,12 @@ const logOccurrences = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.logMsg.length > 50) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    if (req.query.logMsg.length > 26) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
-
+    if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
+      trimmedLogMsg = trimmedLogMsg.concat(")")
+    }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -1647,8 +1649,8 @@ const crashlyticsData = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.logMsg.length > 50) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    if (req.query.logMsg.length > 26) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
 
     if (!projectCode) {
