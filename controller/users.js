@@ -440,7 +440,7 @@ const userPasswordChagne = async (req, res) => {
       user.passwordHash
     );
     if (!passwordCompare) {
-      res.json({ success: false, message: "passwords do not match" });
+      res.json({ success: false, message: "Current password is incorrect." });
     }
 
     // checking new password and hashing it
