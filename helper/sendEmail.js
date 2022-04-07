@@ -4,15 +4,15 @@ const dotenv = require('dotenv')
 dotenv.config();
 
 var transport = nodemailer.createTransport({
-    host: "smtp.mailtrap.io",
-    port: 2525,
+    host: "smtp.gmail.com", //"smtp.mailtrap.io",
+    port: process.env.Gmail_Mail_Port, //2525,
     auth: {
-        user: process.env.Mail_USER,
-        pass: process.env.Mail_PASS
+        user: process.env.Gmail_Mail_USER,
+        pass: process.env.Gmail_Mail_PASS
     }
 });
 
-const sendEmail = ({otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'support@logcat.com',next})=>{
+const sendEmail = ({otp, msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})=>{
     try {
         if(!from || !to || !msg || !otp) throw 'Provide the field for email...';
         console.log(otp)
@@ -20,8 +20,8 @@ const sendEmail = ({otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'suppo
         const mail = {
             from,
             to,
-            subject:'Forget password Reset',
-            text:`${msg} OTP to reset the password is ${otp}`,
+            subject:'Password Reset OTP: LogCat',
+            text:`Hey ${msg}, OTP to reset the password is ${otp}`,
             template:'resetPassword'
         }
 
@@ -35,4 +35,26 @@ const sendEmail = ({otp, msg = 'Hello, Cactus', to='xyz@gmail.com',from = 'suppo
     }
 }
 
-module.exports = {sendEmail}
+const sendCrashEmail = ({msg = 'Crash Report, ', to='xyz@gmail.com',from = 'support@logcat.com',next})=>{
+    try {
+        if(!from || !to || !msg) throw 'Provide the field for email...';
+console.log(`${msg} ${to} ${from}`)
+        const mail = {
+            from,
+            to,
+            subject:'Crash Notification: LogCat',
+            text:`Error: ${msg}`,
+            template:'Crash Report'
+        }
+
+        transport.sendMail(mail, (error,info)=>{
+            if(error) console.log(`Mail fail ${error}`);
+            console.log(`Mail send ${[...info]}`);
+        })
+        next();
+    } catch (error) {
+        return json({'errormessage':`sendMail ${error}`});
+    }
+}
+
+module.exports = {sendEmail, sendCrashEmail}

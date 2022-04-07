@@ -33,7 +33,6 @@ const updateFile = (req,folder,filename)=>{
     }
     const fileName = Date.now()+'-'+file.name;
     file.mv(`${__dirname}/../public/${folder}/`+fileName,(err)=>{
-        console.log("helper error: ",err)
         if(err){
             return false;
         }
