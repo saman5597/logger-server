@@ -15,6 +15,7 @@ const {
   getDaysArray,
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
+const { sendCrashEmail } = require("../helper/sendEmail");
 // const { type } = require("express/lib/response");
 
 /**
@@ -399,6 +400,7 @@ const addEmailWithProjectCode = async (req, res) => {
         message: "Some error occured during updating the project!!",
       };
 
+    
 
       const emailList = await Projects.findOne({
         code: projectCode,
@@ -438,11 +440,9 @@ const makeEntriesInDeviceLogger = async (req, res) => {
         status: 0,
         message: "Project does not exist",
       };
-    console.log(req.body);
     const collectionName = findProjectWithCode.collection_name;
     console.log(require(`../model/${collectionName}`));
     const modelReference = require(`../model/${collectionName}`);
-    console.log(modelReference);
     // testprojectmodified_collection
 
     const {
@@ -453,8 +453,6 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       // device
       device,
     } = req.body;
-
-    console.log("logMsg", log.msg);
 
     //  above details will be put in project tables
 
@@ -487,13 +485,21 @@ const makeEntriesInDeviceLogger = async (req, res) => {
     });
 
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    console.log("isLoggerSaved", isLoggerSaved);
+    // console.log("isLoggerSaved", isLoggerSaved);
     // console.log(putDataIntoLoggerDb);
     if (!isLoggerSaved)
       throw {
         status: 0,
         message: "Logger entry failed!",
       };
+
+      // console.log(log.message)
+      if (log.type == 'error') {
+        findProjectWithCode.reportEmail.map(email=>{
+          // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
+          sendCrashEmail({msg:log.msg, to:email, from:'logcat@gmail.com'})
+        })
+      }
 
     res.status(201).json({
       status: 1,

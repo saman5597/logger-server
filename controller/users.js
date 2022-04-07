@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 const morgan = require("morgan")
+const fs = require('fs')
+const path = require('path')
 
 const redis = require("redis");
 const url = require("url");
@@ -15,6 +17,7 @@ const Users = require("../model/users");
 const ForgetPassword = require("../model/forgetPassword");
 const { ValidateEmail } = require("../helper/validatorMiddleware");
 const { validationResult } = require("express-validator");
+const { response } = require("express");
 dotenv.config();
 
 let redisClient;
@@ -173,6 +176,7 @@ const loginUser = async (req, res) => {
         token: token,
         name: isUserExist.name,
         email: isUserExist.email,
+        image:isUserExist.image,
         isSuperAdmin: isUserExist.isSuperAdmin,
       },
     });
@@ -194,30 +198,19 @@ const loginUser = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
+    console.log(req.files)
+    console.log(req.body)
+    
     if (req.files) {
-      var {image} = req.files
+      var image = await req.files
     }
-    
-    const validateEmail = ValidateEmail(email);
-    
-    if (!validateEmail)
-    throw {
-      status: 0,
-      message: "Email invalid",
-      errorMessage: "Email not valid",
-    };
-    
-    const user = await Users.findOne({email:email});
+
+    const user = await Users.findOne({id:req.user.id});
+    console.log(user)
     if (!user)
       throw {
         status: 200,
         message: "User does not found",
-      };
-
-    if (!name)
-      throw {
-        status: 404,
-        message: "Provide field to update",
       };
 
     // uploading image if exists
@@ -239,29 +232,51 @@ const updateUserProfile = async (req, res) => {
     user.name = name || user.name;
     user.image = filenameToStore ;
     // user.image = filenameToStore != "" ? filenameToStore : !user.image ? "ddUserDefaultIcon.png" : user.image;
-    const isSaved = user.save();
+    const isSaved = await user.save();
     console.log("image: ",isSaved)
     if (!isSaved)
       throw {
         status: 404,
         message: "User profile update fail",
       };
+    
 
-    return res.status(200).json({ message: "Product Updated successfully!" });
+      // `${__dirname}/../public/${folder}/`+fileName
+    var filePath = path.join(`${__dirname}/../public/user_image/`, isSaved.image);
+    var stat = fs.statSync(filePath);
+
+    // res.writeHead(200, {
+    //     'Content-Type': 'image/*',
+    //     'Content-Length': stat.size
+    // });
+
+    // var readStream = fs.createReadStream(filePath);
+    var image = await fs.readFileSync(filePath,{encoding: 'base64'});
+    // We replaced all the event handlers with a simple call to readStream.pipe()
+    // readStream.pipe(response);
+
+    // res.set({
+    //   // 'accept':'applications/JSON',
+    //   // 'Content-Type': 'image/*',
+    //   'Content-Length': stat.size,
+    // });
+    return res.status(200).json({ message: "Product Updated successfully!", name:isSaved.name, avatar:image });
+
+    // return readStream.pipe(res)
+
   } catch (error) {
     console.log("error",error)
-    return res.status(500).json("error catch")
-    // return res.status(error.status).json({
-    //   status: 0,
-    //   data: {
-    //     err: {
-    //       generatedTime: new Date(),
-    //       errMsg: error.name,
-    //       msg: error.message,
-    //       type: "LogoutError",
-    //     },
-    //   },
-    // });
+    return res.status(500).json({
+      status: 0,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: error.name,
+          msg: error.message,
+          type: "Update Profile error",
+        },
+      },
+    });
   }
 };
 
