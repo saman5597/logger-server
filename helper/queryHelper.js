@@ -8,14 +8,14 @@ class QueryHelper {
       const queryObj = { ...this.queryStr };
       const excludedFields = ['page', 'sort', 'limit', 'fields'];
       excludedFields.forEach(el => delete queryObj[el]);
-      // let dt = new Date(queryObj["endDate"])
-      // dt.setDate(dt.getDate()+1)
+      let dt = new Date(queryObj["endDate"])
+      dt.setDate(dt.getDate()+1)
       if (queryObj.startDate && queryObj.endDate) {
-          queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: new Date(queryObj["endDate"]) }
+          queryObj.createdAt = { gte: new Date(queryObj["startDate"]), lte: dt }
       } else if (queryObj.startDate) {
           queryObj.createdAt = { gte: new Date(queryObj["startDate"]) }
       } else if (queryObj.endDate) {
-          queryObj.createdAt = { lte: new Date(queryObj["endDate"]) }
+          queryObj.createdAt = { lte: dt }
       }
 
       if (queryObj.logType) {
@@ -28,7 +28,7 @@ class QueryHelper {
       queryStr = queryStr.replace("logType", "log.type")
       queryStr = queryStr.replace("createdAt", "log.date")
       console.log(queryStr)
-      this.query = this.query.find(JSON.parse(queryStr));
+      this.query = this.query.find(JSON.parse(queryStr)).lean().maxTimeMS(10000).select({'version':1, 'type': 1, 'device': 1, 'log.date': 1, 'log.type': 1, 'log.message': 1, 'createdAt':1})
       return this;
   }
 

@@ -29,6 +29,8 @@
             },
             schemaOptions
         )
+
+        ventilatortesting_collectionSchema.index({'type': 1})
                 
         const ventilatortesting_collection = mongoose.model('ventilatortesting_collection', ventilatortesting_collectionSchema)
         

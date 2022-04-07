@@ -118,6 +118,8 @@ const createNewProject = async (req, res) => {
             },
             schemaOptions
         )
+
+        ${collection_name}Schema.index({'type': 1})
                 
         const ${collection_name} = mongoose.model('${collection_name}', ${collection_name}Schema)
         
@@ -308,6 +310,8 @@ const updateProjectWithProjectCode = async (req, res) => {
                 },
                 schemaOptions
                 )
+
+                ${getProjectWithProjectCode.collection_name}Schema.index({'type': 1})
                 
                 const ${getProjectWithProjectCode.collection_name} = mongoose.model('${getProjectWithProjectCode.collection_name}', ${getProjectWithProjectCode.collection_name}Schema)
                 
@@ -559,7 +563,10 @@ const getProjectWithFilter = async (req, res) => {
     const countObj = await countObjQuery.query;
 
     const features = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }).populate("device"),
+      collectionName.find({ type: req.query.projectType }).populate({
+        path: 'device',
+        select: 'did name code manufacturer os'
+      }),
       req.query
     )
       .filter()
@@ -585,6 +592,7 @@ const getProjectWithFilter = async (req, res) => {
       data: { count: countObj.length, pageLimit: logs.length, logs: logs },
     });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({
       status: 0,
       data: {
