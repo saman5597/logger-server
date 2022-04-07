@@ -13,7 +13,7 @@
             }
         }
         
-        const testproject_collectionSchema = new mongoose.Schema(
+        const testtproject_collectionSchema = new mongoose.Schema(
             {
                 version: {
                     type: String,
@@ -30,9 +30,9 @@
             schemaOptions
         )
 
-        testproject_collectionSchema.index({'type': 1})
+        testtproject_collectionSchema.index({'type': 1})
                 
-        const testproject_collection = mongoose.model('testproject_collection', testproject_collectionSchema)
+        const testtproject_collection = mongoose.model('testtproject_collection', testtproject_collectionSchema)
         
-        module.exports = testproject_collection
+        module.exports = testtproject_collection
         
