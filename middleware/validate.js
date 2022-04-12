@@ -36,6 +36,9 @@ const authDevice = async (req,res,next)=>{
     }
 }
 
+
+
+
 module.exports =  {
     authDevice
 }

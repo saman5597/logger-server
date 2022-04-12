@@ -13,7 +13,7 @@
             }
         }
         
-        const ventilatortesting_collectionSchema = new mongoose.Schema(
+        const testtproject_collectionSchema = new mongoose.Schema(
             {
                 version: {
                     type: String,
@@ -30,9 +30,9 @@
             schemaOptions
         )
 
-        ventilatortesting_collectionSchema.index({'type': 1})
+        testtproject_collectionSchema.index({'type': 1})
                 
-        const ventilatortesting_collection = mongoose.model('ventilatortesting_collection', ventilatortesting_collectionSchema)
+        const testtproject_collection = mongoose.model('testtproject_collection', testtproject_collectionSchema)
         
-        module.exports = ventilatortesting_collection
+        module.exports = testtproject_collection
         

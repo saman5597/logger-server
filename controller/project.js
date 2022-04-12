@@ -15,6 +15,7 @@ const {
   getDaysArray,
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
+const { sendCrashEmail } = require("../helper/sendEmail");
 // const { type } = require("express/lib/response");
 
 /**
@@ -118,6 +119,8 @@ const createNewProject = async (req, res) => {
             },
             schemaOptions
         )
+
+        ${collection_name}Schema.index({'type': 1})
                 
         const ${collection_name} = mongoose.model('${collection_name}', ${collection_name}Schema)
         
@@ -308,6 +311,8 @@ const updateProjectWithProjectCode = async (req, res) => {
                 },
                 schemaOptions
                 )
+
+                ${getProjectWithProjectCode.collection_name}Schema.index({'type': 1})
                 
                 const ${getProjectWithProjectCode.collection_name} = mongoose.model('${getProjectWithProjectCode.collection_name}', ${getProjectWithProjectCode.collection_name}Schema)
                 
@@ -399,11 +404,19 @@ const addEmailWithProjectCode = async (req, res) => {
         message: "Some error occured during updating the project!!",
       };
 
+    
+
+    const emailList = await Projects.findOne({
+      code: projectCode,
+    }, { reportEmail: 1, _id: 0 });
+
     res.status(200).json({
       status: 1,
-      data: {},
-      message: "Project details 2 Updated!!",
+      data: emailList,
+      message: "Project details Updated!!",
     });
+
+
   } catch (error) {
     console.log("catch error: ", error);
     res.status(400).json({
@@ -431,11 +444,9 @@ const makeEntriesInDeviceLogger = async (req, res) => {
         status: 0,
         message: "Project does not exist",
       };
-    console.log(req.body);
     const collectionName = findProjectWithCode.collection_name;
     console.log(require(`../model/${collectionName}`));
     const modelReference = require(`../model/${collectionName}`);
-    console.log(modelReference);
     // testprojectmodified_collection
 
     const {
@@ -446,8 +457,6 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       // device
       device,
     } = req.body;
-
-    console.log("logMsg", log.msg);
 
     //  above details will be put in project tables
 
@@ -480,13 +489,21 @@ const makeEntriesInDeviceLogger = async (req, res) => {
     });
 
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    console.log("isLoggerSaved", isLoggerSaved);
+    // console.log("isLoggerSaved", isLoggerSaved);
     // console.log(putDataIntoLoggerDb);
     if (!isLoggerSaved)
       throw {
         status: 0,
         message: "Logger entry failed!",
       };
+
+      // console.log(log.message)
+      if (log.type == 'error') {
+        findProjectWithCode.reportEmail.map(email=>{
+          // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
+          sendCrashEmail({msg:log.msg, to:email, from:'logcat@gmail.com'})
+        })
+      }
 
     res.status(201).json({
       status: 1,
@@ -552,7 +569,10 @@ const getProjectWithFilter = async (req, res) => {
     const countObj = await countObjQuery.query;
 
     const features = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }).populate("device"),
+      collectionName.find({ type: req.query.projectType }).populate({
+        path: 'device',
+        select: 'did name code manufacturer os'
+      }),
       req.query
     )
       .filter()
@@ -578,6 +598,7 @@ const getProjectWithFilter = async (req, res) => {
       data: { count: countObj.length, pageLimit: logs.length, logs: logs },
     });
   } catch (error) {
+    console.log(error)
     return res.status(500).json({
       status: 0,
       data: {
@@ -1227,8 +1248,8 @@ const getlogMsgOccurence = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.msg.length > 50) {
-      trimmedLogMsg = req.query.msg.substring(0, 50);
+    if (req.query.msg.length > 26) {
+      trimmedLogMsg = req.query.msg.substring(0, 26);
     } else trimmedLogMsg = req.query.msg;
 
     const projectCollection = await Projects.findOne({ code: projectCode });
@@ -1345,10 +1366,12 @@ const logOccurrences = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.logMsg.length > 50) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    if (req.query.logMsg.length > 26) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
-
+    if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
+      trimmedLogMsg = trimmedLogMsg.concat(")")
+    }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
       {
@@ -1640,8 +1663,8 @@ const crashlyticsData = async (req, res) => {
     }
 
     var trimmedLogMsg;
-    if (req.query.logMsg.length > 50) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 50);
+    if (req.query.logMsg.length > 26) {
+      trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
 
     if (!projectCode) {
