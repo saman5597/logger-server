@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
-const morgan = require("morgan")
-const fs = require('fs')
-const path = require('path')
+const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
 
 const redis = require("redis");
 const url = require("url");
 const { sendEmail } = require("../helper/sendEmail");
 const { createOtp } = require("../helper/helperFunctions");
-const {uploadFile,deleteFile,updateFile} = require("../helper/fileHelper");
+const { uploadFile, deleteFile, updateFile } = require("../helper/fileHelper");
 
 const JWTR = require("jwt-redis").default;
 
@@ -18,6 +18,7 @@ const ForgetPassword = require("../model/forgetPassword");
 const { ValidateEmail } = require("../helper/validatorMiddleware");
 const { validationResult } = require("express-validator");
 const { response } = require("express");
+const AppError = require("../utils/appError");
 dotenv.config();
 
 let redisClient;
@@ -35,16 +36,17 @@ const jwtr = new JWTR(redisClient);
  * api      POST @/api/logger/register
  * desc     @register for logger access only
  */
-const registerUser = async (req, res) => {
+
+// REGISTER USER IN *******************************************************
+
+const registerUser = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     const validateEmailId = ValidateEmail(email);
-    if (password.length === 0)
-      throw {
-        status: 0,
-        message: "Please enter password!",
-      };
+    if (password.length === 0) {
+      next(new AppError(`please enter password`, 404)); //NJ-change-12-04-2022
+    }
 
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(password, salt);
@@ -55,28 +57,28 @@ const registerUser = async (req, res) => {
         email,
         isSuperAdmin: false,
         passwordHash,
-        image:""
+        image: "",
       });
       const savedUser = await user.save(user);
 
       if (savedUser) {
         res.status(201).json({
           status: 1,
-          data: { name: savedUser.name, avatar:savedUser.image },
+          data: { name: savedUser.name, avatar: savedUser.image },
           message: "Registration successfull!",
         });
-      } else
-        throw {
-          status: 0,
-          message: "some error happend during registration",
-        };
-    } else
-      throw {
-        status: 0,
-        message: "Invalid email address.",
-      };
+      } else {
+        next(AppError(`some error happened during registration`, 406)); //NJ-change-12-04-2022
+      }
+      // throw {
+      //   status: 0,
+      //   message: "some error happend during registration",
+      // };
+    } else {
+      next(new AppError(`Invalid email address`, 406)); //NJ-change-12-04-2022
+    }
   } catch (error) {
-    if (error.code === 11000)
+    if (error.code === 11000) {
       res.status(409).json({
         status: 0,
         data: {
@@ -88,6 +90,7 @@ const registerUser = async (req, res) => {
           },
         },
       });
+    }
     res.status(400).json({
       status: 0,
       data: {
@@ -176,7 +179,7 @@ const loginUser = async (req, res) => {
         token: token,
         name: isUserExist.name,
         email: isUserExist.email,
-        image:isUserExist.image,
+        image: isUserExist.image,
         isSuperAdmin: isUserExist.isSuperAdmin,
       },
     });
@@ -198,15 +201,15 @@ const loginUser = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
-    console.log(req.files)
-    console.log(req.body)
-    
+    console.log(req.files);
+    console.log(req.body);
+
     if (req.files) {
-      var image = await req.files
+      var image = await req.files;
     }
 
-    const user = await Users.findOne({id:req.user.id});
-    console.log(user)
+    const user = await Users.findOne({ id: req.user.id });
+    console.log(user);
     if (!user)
       throw {
         status: 200,
@@ -215,34 +218,35 @@ const updateUserProfile = async (req, res) => {
 
     // uploading image if exists
     let filenameToStore = "";
-    console.log(image)
+    console.log(image);
     if (req.files) {
       if (user.image) {
         filenameToStore = updateFile(req, "user_image", user.image);
       } else {
         filenameToStore = updateFile(req, "user_image", image.name);
       }
-    }else{
+    } else {
       filenameToStore = deleteFile("user_image", user.image);
     }
     // return res.status(200).json({done:filenameToStore})
 
-    
     // store data in DB
     user.name = name || user.name;
-    user.image = filenameToStore ;
+    user.image = filenameToStore;
     // user.image = filenameToStore != "" ? filenameToStore : !user.image ? "ddUserDefaultIcon.png" : user.image;
     const isSaved = await user.save();
-    console.log("image: ",isSaved)
+    console.log("image: ", isSaved);
     if (!isSaved)
       throw {
         status: 404,
         message: "User profile update fail",
       };
-    
 
-      // `${__dirname}/../public/${folder}/`+fileName
-    var filePath = path.join(`${__dirname}/../public/user_image/`, isSaved.image);
+    // `${__dirname}/../public/${folder}/`+fileName
+    var filePath = path.join(
+      `${__dirname}/../public/user_image/`,
+      isSaved.image
+    );
     var stat = fs.statSync(filePath);
 
     // res.writeHead(200, {
@@ -251,7 +255,7 @@ const updateUserProfile = async (req, res) => {
     // });
 
     // var readStream = fs.createReadStream(filePath);
-    var image = await fs.readFileSync(filePath,{encoding: 'base64'});
+    var image = await fs.readFileSync(filePath, { encoding: "base64" });
     // We replaced all the event handlers with a simple call to readStream.pipe()
     // readStream.pipe(response);
 
@@ -260,12 +264,15 @@ const updateUserProfile = async (req, res) => {
     //   // 'Content-Type': 'image/*',
     //   'Content-Length': stat.size,
     // });
-    return res.status(200).json({ message: "Product Updated successfully!", name:isSaved.name, avatar:image });
+    return res.status(200).json({
+      message: "Product Updated successfully!",
+      name: isSaved.name,
+      avatar: image,
+    });
 
     // return readStream.pipe(res)
-
   } catch (error) {
-    console.log("error",error)
+    console.log("error", error);
     return res.status(500).json({
       status: 0,
       data: {

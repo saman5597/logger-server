@@ -6,7 +6,8 @@ const upload = require("express-fileupload");
 const bodyParser = require("body-parser");
 const connectDB = require("./config/db.js");
 const morgan = require("morgan");
-const AppError = require("./utils/error");
+const globalErrorHandler = require("./controller/errorController");
+const AppError = require("./utils/appError.js");
 
 dotenv.config();
 
@@ -19,7 +20,12 @@ connectDB();
 
 const app = express();
 app.enable("trust proxy");
-app.use(morgan("tiny"));
+
+// development environment morgan logs
+if (process.env.NODE_ENV === "development") {
+  app.use(morgan("tiny"));
+}
+
 app.use(cors());
 app.use(upload()); // for multipart data type
 app.use(express.static("public"));
@@ -40,17 +46,21 @@ app.get("/", (req, res) => {
 });
 
 // error handling for all routes which are not define
-app.all("*", (req, res, next) => {
-  res.status(404).json({
-    status: "fail",
-    message: `Can't find ${req.originalUrl} on this server!`,
-  });
+app.all('*', (req, res, next) => {
+  next(
+    new AppError(`Can't find ${req.originalUrl} on this server.`, 404)
+  );
 });
-
-app.all("*", (req, res, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
-});
+// GLOBAL ERROR HANDLING
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => console.log(`active on port ${PORT}`));
+
+// unhandleRejection Error handling
+process.on("unhandledRejection", (err) => {
+  console.log(err.name, err.message);
+  console.log("UNHANDLED REJECTION! 💥 Shutting down...");
+  process.exit(1);
+});
