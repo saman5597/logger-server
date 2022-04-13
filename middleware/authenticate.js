@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 
 const redis = require("redis");
 const url = require("url");
+const AppError = require("../utils/appError");
 let redisClient;
 if (process.env.REDISCLOUD_URL) {
   let redisURL = url.parse(process.env.REDISCLOUD_URL);
@@ -25,11 +26,13 @@ const authUser = async (req, res, next) => {
 
     if (!token) {
       // return res.status(401).json({'errormessage':"Authentication Failed!"});
-      throw { message: "Unauthenticated" };
+      throw new AppError(`Unauthenticated.`, 401); // NJ-changes 13 Apr
     }
 
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
-    if (!verified) throw { message: "Not verified" };
+    if (!verified) {
+      throw new AppError(`Not verified.`, 401); // NJ-changes 13 Apr
+    }
     req.user = verified.user;
     console.log("req user", req.user);
     req.jti = verified.jti;
@@ -37,12 +40,10 @@ const authUser = async (req, res, next) => {
     // proceed after authentication
     next();
   } catch (error) {
-    console.log(error);
-    return res.status(401).json({
-      status: 0,
-      error: `${error.message}`,
-      errorMessage: "Some error occured!",
-    });
+    // console.log(error);
+    next(
+      new AppError(`Some error occured!, ${error.name}, ${error.message}`, 401)
+    ); // NJ-changes 13 Apr
   }
 };
 
@@ -53,11 +54,7 @@ const restrictToRole = async (req, res, next) => {
   console.log(user.isSuperAdmin);
 
   if (!user.isSuperAdmin) {
-    return res.status(403).json({
-      status: 0,
-      errorMessage: "Some error occured!",
-      error: "You dont have permission to access this.",
-    });
+    throw new AppError(`You dont have permission to access this.`, 403); // NJ-changes 13 Apr
   }
   next();
 };

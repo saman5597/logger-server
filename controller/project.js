@@ -16,6 +16,7 @@ const {
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
 const { sendCrashEmail } = require("../helper/sendEmail");
+const AppError = require("../utils/appError");
 // const { type } = require("express/lib/response");
 
 /**
@@ -24,7 +25,7 @@ const { sendCrashEmail } = require("../helper/sendEmail");
  * @param {*} res
  */
 
-const getAllRegisterProject = async (req, res) => {
+const getAllRegisterProject = async (req, res, next) => {
   try {
     const allRgisterProject = await Projects.find();
     return res.status(200).json({
@@ -33,17 +34,9 @@ const getAllRegisterProject = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError ,${error.name}, ${error.message}`, 404)
+    ); // NJ-changes 13 Apr
   }
 };
 
@@ -52,7 +45,7 @@ const getAllRegisterProject = async (req, res) => {
  * desc     To create new project
  */
 
-const createNewProject = async (req, res) => {
+const createNewProject = async (req, res, next) => {
   try {
     const { name, description, device_type } = req.body;
     // device type will be  array
@@ -60,8 +53,9 @@ const createNewProject = async (req, res) => {
 
     const typeCodeArray = [];
 
-    if (device_type.length === 0)
-      throw { message: "Please provide atleast one device name!" };
+    if (device_type.length === 0) {
+      throw new AppError(`Please provide atleast one device name!`, 404); // NJ-changes 13 Apr
+    }
 
     //  loop and set the typecode and enum code
     for (let i = 0; i < device_type.length; i++) {
@@ -71,8 +65,9 @@ const createNewProject = async (req, res) => {
 
     const isCollectionExist = await checkCollectionName(name + "_collection");
 
-    if (isCollectionExist)
-      throw { message: "Project with provided name already exist!!" };
+    if (isCollectionExist) {
+      throw new AppError(`Project with provided name already exist!!`, 404); // NJ-changes 13 Apr
+    }
 
     const collection_name =
       removeAllSpecialChars(name).toLowerCase() + "_collection";
@@ -84,7 +79,9 @@ const createNewProject = async (req, res) => {
       collection_name,
     });
     const savedProject = await project.save(project);
-    if (!savedProject) throw { message: "Project not created!!" };
+    if (!savedProject) {
+      throw new AppError(`Project not created!!`, 401); // NJ-changes 13 Apr
+    }
 
     // dynamic schema
 
@@ -136,9 +133,10 @@ const createNewProject = async (req, res) => {
         mode: 0o666,
       },
       (err) => {
-        if (err)
-          throw { message: "Some error occured during project creation" };
-        console.log("File written successfully");
+        if (err) {
+          throw new AppError(`Some error occured during project creation`, 403); // NJ-changes 13 Apr
+        }
+        // console.log("File written successfully");
       }
     );
 
@@ -149,29 +147,13 @@ const createNewProject = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    if (error.code === 11000)
-      return res.status(409).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: error.name,
-            msg: "Duplicate Project",
-            type: "DuplicatePojectError",
-          },
-        },
-      });
-    return res.status(404).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "NotFoundError",
-        },
-      },
-    });
+    if (error.code === 11000) {
+      throw new AppError(
+        `DuplicatePojectError, ${error.name}, ${error.message}`,
+        409
+      ); // NJ-changes 13 Apr
+    }
+    next(new AppError(`NotFoundError, ${error.name}, ${error.message}`, 404)); // NJ-changes 13 Apr
   }
 };
 
@@ -180,38 +162,18 @@ const createNewProject = async (req, res) => {
  * @param {project code} req
  * @param {whole project data} res
  */
-const getProjectWithProjectCode = async (req, res) => {
+const getProjectWithProjectCode = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     // if not enter projectCode
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
 
     const getProject = await Projects.findOne({ code: projectCode });
     if (!getProject) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
 
     res.status(200).json({
@@ -220,17 +182,12 @@ const getProjectWithProjectCode = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(
+        `InternalServerError , ${error.name}, ${error.message} .`,
+        404
+      )
+    ); // NJ-changes 13 Apr
   }
 };
 
@@ -242,7 +199,7 @@ const getProjectWithProjectCode = async (req, res) => {
  * @param {successful} res
  */
 
-const updateProjectWithProjectCode = async (req, res) => {
+const updateProjectWithProjectCode = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     const { name, description, device_type } = req.body;
@@ -251,10 +208,11 @@ const updateProjectWithProjectCode = async (req, res) => {
       code: projectCode,
     });
 
-    if (!getProjectWithProjectCode)
-      throw { message: "We don't have any project with this code!!" };
-    if (!device_type) {
+    if (!getProjectWithProjectCode) {
+      throw new AppError(`We don't have any project with this code!!.`, 401); // NJ-changes 13 Apr
     }
+    // if (!device_type) {
+    // }
 
     // Add new element to array
 
@@ -330,9 +288,14 @@ const updateProjectWithProjectCode = async (req, res) => {
           mode: 0o666,
         },
         (err) => {
-          if (err)
-            throw { message: "Some error occured during project updation" };
-          console.log("File update failed");
+          if (err) {
+            throw new AppError(
+              `Some error occured during project updation.`,
+              401
+            ); // NJ-changes 13 Apr
+          }
+
+          // console.log("File update failed");
         }
       );
     }
@@ -348,41 +311,39 @@ const updateProjectWithProjectCode = async (req, res) => {
 
     const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
-    if (!isGetProjectWithProjectCodeSaved)
-      throw {
-        status: 0,
-        message: "Some error occured during updating the project!!",
-      };
+    if (!isGetProjectWithProjectCodeSaved) {
+      throw new AppError(
+        `Some error occured during updating the project!!`,
+        401
+      ); // NJ-changes 13 Apr
+    }
+
     res.status(200).json({
       status: 1,
       data: {},
       message: "Project details Updated!!",
     });
   } catch (error) {
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "ProjectUpdateError",
-        },
-      },
-    });
+    next(
+      new AppError(`ProjectUpdateError, ${error.name}, ${error.message}`, 400) // NJ-changes 13 Apr
+    );
   }
 };
 
-const addEmailWithProjectCode = async (req, res) => {
+const addEmailWithProjectCode = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     console.log(req.body);
     const { email } = req.body;
-    if (!email) throw "No email available.";
+    if (!email) {
+      throw new AppError(`No email available.`, 404); // NJ-changes 13 Apr
+    }
 
     let emailError = [];
     email.map((em) => {
-      if (!ValidateHelper.ValidateEmail(em)) throw "Check entered emails.";
+      if (!ValidateHelper.ValidateEmail(em)) {
+        throw new AppError(`Check entered emails.`, 404); // NJ-changes 13 Apr
+      }
       if (!emailError.includes(em)) {
         emailError.push(em);
       }
@@ -392,58 +353,51 @@ const addEmailWithProjectCode = async (req, res) => {
       code: projectCode,
     });
 
-    if (!getProjectWithProjectCode) throw "Project does not exist.";
+    if (!getProjectWithProjectCode) {
+      throw new AppError(`Project does not exist.`, 401); // NJ-changes 13 Apr
+    }
 
     getProjectWithProjectCode.reportEmail = [...emailError];
 
     const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
-    if (!isGetProjectWithProjectCodeSaved)
-      throw {
-        status: 0,
-        message: "Some error occured during updating the project!!",
-      };
+    if (!isGetProjectWithProjectCodeSaved) {
+      throw new AppError(
+        `Some error occured during updating the project!!`,
+        400
+      ); // NJ-changes 13 Apr
+    }
 
-    
-
-    const emailList = await Projects.findOne({
-      code: projectCode,
-    }, { reportEmail: 1, _id: 0 });
+    const emailList = await Projects.findOne(
+      {
+        code: projectCode,
+      },
+      { reportEmail: 1, _id: 0 }
+    );
 
     res.status(200).json({
       status: 1,
       data: emailList,
       message: "Project details Updated!!",
     });
-
-
   } catch (error) {
-    console.log("catch error: ", error);
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error,
-          msg: error.message,
-          type: "ProjectUpdateError",
-        },
-      },
-    });
+    // console.log("catch error: ", error);
+    next(
+      new AppError(`ProjectUpdateError, ${error.name}, ${error.message}`, 400)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const makeEntriesInDeviceLogger = async (req, res) => {
+const makeEntriesInDeviceLogger = async (req, res, next) => {
   try {
     const { project_code } = req.params;
     // check project exist or not
     const findProjectWithCode = await Projects.findOne({ code: project_code });
 
-    if (!findProjectWithCode)
-      throw {
-        status: 0,
-        message: "Project does not exist",
-      };
+    if (!findProjectWithCode) {
+      throw new AppError(`Project does not exist`, 404); // NJ-changes 13 Apr
+    }
+
     const collectionName = findProjectWithCode.collection_name;
     console.log(require(`../model/${collectionName}`));
     const modelReference = require(`../model/${collectionName}`);
@@ -474,7 +428,9 @@ const makeEntriesInDeviceLogger = async (req, res) => {
 
     const isDeviceSaved = await Dvc.save(Dvc);
 
-    if (!isDeviceSaved) throw "Device save operation failed!";
+    if (!isDeviceSaved) {
+      throw new AppError(`Device save operation failed!`, 401); // NJ-changes 13 Apr
+    }
 
     const putDataIntoLoggerDb = await new modelReference({
       version: version,
@@ -491,19 +447,17 @@ const makeEntriesInDeviceLogger = async (req, res) => {
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     // console.log("isLoggerSaved", isLoggerSaved);
     // console.log(putDataIntoLoggerDb);
-    if (!isLoggerSaved)
-      throw {
-        status: 0,
-        message: "Logger entry failed!",
-      };
+    if (!isLoggerSaved) {
+      throw new AppError(`Logger entry failed!`, 401); // NJ-changes 13 Apr
+    }
 
-      // console.log(log.message)
-      if (log.type == 'error') {
-        findProjectWithCode.reportEmail.map(email=>{
-          // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
-          sendCrashEmail({msg:log.msg, to:email, from:'logcat@gmail.com'})
-        })
-      }
+    // console.log(log.message)
+    if (log.type == "error") {
+      findProjectWithCode.reportEmail.map((email) => {
+        // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
+        sendCrashEmail({ msg: log.msg, to: email, from: "logcat@gmail.com" });
+      });
+    }
 
     res.status(201).json({
       status: 1,
@@ -511,18 +465,8 @@ const makeEntriesInDeviceLogger = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    console.log(error);
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "LoggerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(new AppError(`LoggerError, ${error.name}, ${error.message}`, 400));
   }
 };
 
@@ -532,29 +476,18 @@ const makeEntriesInDeviceLogger = async (req, res) => {
  *
  */
 
-const getProjectWithFilter = async (req, res) => {
+const getProjectWithFilter = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project type is required",
-            msg: "Project type is required",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
     }
 
     const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid",
-      };
+    if (!isProjectExist) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
 
@@ -570,8 +503,8 @@ const getProjectWithFilter = async (req, res) => {
 
     const features = new QueryHelper(
       collectionName.find({ type: req.query.projectType }).populate({
-        path: 'device',
-        select: 'did name code manufacturer os'
+        path: "device",
+        select: "did name code manufacturer os",
       }),
       req.query
     )
@@ -598,18 +531,10 @@ const getProjectWithFilter = async (req, res) => {
       data: { count: countObj.length, pageLimit: logs.length, logs: logs },
     });
   } catch (error) {
-    console.log(error)
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
@@ -619,14 +544,13 @@ const getProjectWithFilter = async (req, res) => {
  * @param {id of all device} res
  * @returns
  */
-const getdeviceIdProjectWise = async (req, res) => {
+const getdeviceIdProjectWise = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid",
-      };
+    if (!isProjectExist) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const listOfId = await collectionName
@@ -639,17 +563,9 @@ const getdeviceIdProjectWise = async (req, res) => {
       message: "Successful",
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
@@ -658,33 +574,26 @@ const getdeviceIdProjectWise = async (req, res) => {
  * api      @/api/logger/projects/getLogsCount/:projectCode
  */
 
-const getProjectLogs = async (req, res) => {
+const getProjectLogs = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
+    if (!isProjectExist) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required ",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
     if (!req.query.startDate || !req.query.endDate) {
-      throw {
-        message: "Provide start date and end date.",
-      };
+      throw new AppError(`Provide start date and end date.`, 404); // NJ-changes 13 Apr
     }
 
     // console.log("req query",req.params)
 
     if (!req.params.projectCode) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
@@ -727,36 +636,25 @@ const getProjectLogs = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getErrorCountByVersion = async (req, res) => {
+const getErrorCountByVersion = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
+    if (!isProjectExist) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
@@ -771,7 +669,7 @@ const getErrorCountByVersion = async (req, res) => {
     //     { $match: { 'log.type':"info" } },
     //     { $group: { _id: "$version", count: { $sum: 1 } } },
     //   ]);
-    console.log(typeWiseCount);
+    // console.log(typeWiseCount);
 
     return res.status(200).json({
       status: 1,
@@ -781,35 +679,24 @@ const getErrorCountByVersion = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getErrorCountByOSArchitecture = async (req, res) => {
+const getErrorCountByOSArchitecture = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
+    if (!isProjectExist) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
     const typeWiseCount = await collectionName.aggregate([
@@ -833,30 +720,22 @@ const getErrorCountByOSArchitecture = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getDeviceCount = async (req, res) => {
+const getDeviceCount = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection)
-      throw {
-        message: "Project code invalid ",
-      };
+    if (!projectCollection) {
+      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    }
+
     const createdAt = projectCollection.createdAt;
 
     const currentStatus = projectCollection.status;
@@ -864,10 +743,10 @@ const getDeviceCount = async (req, res) => {
     const modelList = projectCollection.device_types;
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    if (!collectionName)
-      throw {
-        message: "Collection Not Found ",
-      };
+    if (!collectionName) {
+      throw new AppError(`Collection Not Found`, 404); // NJ-changes 13 Apr
+    }
+
     const collection = await collectionName
       .find()
       .populate("device")
@@ -884,55 +763,26 @@ const getDeviceCount = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const dateWiseLogCount = async (req, res) => {
+const dateWiseLogCount = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const countResponse = await collectionName.aggregate([
@@ -1046,50 +896,22 @@ const dateWiseLogCount = async (req, res) => {
       message: "Log count on the basis of date.",
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getLogsCountWithOs = async (req, res) => {
+const getLogsCountWithOs = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
 
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
@@ -1122,49 +944,22 @@ const getLogsCountWithOs = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getLogsCountWithModelName = async (req, res) => {
+const getLogsCountWithModelName = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
 
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
@@ -1195,56 +990,27 @@ const getLogsCountWithModelName = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const getlogMsgOccurence = async (req, res) => {
+const getlogMsgOccurence = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
 
     // const { msg } = req.query;
     if (!req.query.msg) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Log message not provided.",
-            msg: "Log message not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
     }
 
     var trimmedLogMsg;
@@ -1254,17 +1020,7 @@ const getlogMsgOccurence = async (req, res) => {
 
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
@@ -1299,70 +1055,31 @@ const getlogMsgOccurence = async (req, res) => {
       message: "successfull",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const logOccurrences = async (req, res) => {
+const logOccurrences = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required.`, 404); // NJ-changes 13 Apr
     }
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
 
     if (!req.query.logMsg) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Log message not provided.",
-            msg: "Log message not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
     }
 
     var trimmedLogMsg;
@@ -1370,7 +1087,7 @@ const logOccurrences = async (req, res) => {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
     } else trimmedLogMsg = req.query.logMsg;
     if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
-      trimmedLogMsg = trimmedLogMsg.concat(")")
+      trimmedLogMsg = trimmedLogMsg.concat(")");
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const response = await collectionName.aggregate([
@@ -1458,57 +1175,26 @@ const logOccurrences = async (req, res) => {
       message: "Log count per log message on the basis of date.",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const crashFreeUsersDatewise = async (req, res) => {
+const crashFreeUsersDatewise = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
     }
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     const countResponse = await collectionName.aggregate([
@@ -1637,29 +1323,19 @@ const crashFreeUsersDatewise = async (req, res) => {
       message: "Log count per log message on the basis of date.",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 
-const crashlyticsData = async (req, res) => {
+const crashlyticsData = async (req, res, next) => {
   try {
     const { projectCode } = req.params;
 
     if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
+      throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
     }
 
     var trimmedLogMsg;
@@ -1668,31 +1344,11 @@ const crashlyticsData = async (req, res) => {
     } else trimmedLogMsg = req.query.logMsg;
 
     if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
     }
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
+      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
     }
     console.log(projectCollection);
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
@@ -1787,18 +1443,10 @@ const crashlyticsData = async (req, res) => {
       message: "Crashlytics data on the basis of date.",
     });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    // console.log(error);
+    next(
+      new AppError(`InternalServerError, ${error.name}, ${error.message}`, 500)
+    ); // NJ-changes 13 Apr
   }
 };
 

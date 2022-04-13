@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
-const morgan = require("morgan")
-const fs = require('fs')
-const path = require('path')
+const morgan = require("morgan");
+const fs = require("fs");
+const path = require("path");
 
 const redis = require("redis");
 const url = require("url");
 const { sendEmail } = require("../helper/sendEmail");
 const { createOtp } = require("../helper/helperFunctions");
-const {uploadFile,deleteFile,updateFile} = require("../helper/fileHelper");
+const { uploadFile, deleteFile, updateFile } = require("../helper/fileHelper");
 
 const JWTR = require("jwt-redis").default;
 
@@ -18,6 +18,8 @@ const ForgetPassword = require("../model/forgetPassword");
 const { ValidateEmail } = require("../helper/validatorMiddleware");
 const { validationResult } = require("express-validator");
 const { response } = require("express");
+const AppError = require("../utils/appError");
+const catchAsync = require("../utils/catchAsync");
 dotenv.config();
 
 let redisClient;
@@ -35,16 +37,14 @@ const jwtr = new JWTR(redisClient);
  * api      POST @/api/logger/register
  * desc     @register for logger access only
  */
-const registerUser = async (req, res) => {
+const registerUser = catchAsync(async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
     const validateEmailId = ValidateEmail(email);
-    if (password.length === 0)
-      throw {
-        status: 0,
-        message: "Please enter password!",
-      };
+    if (password.length === 0) {
+      throw new AppError(`Please enter password`, 404); // NJ-changes 13 Apr
+    }
 
     const salt = await bcrypt.genSalt();
     const passwordHash = await bcrypt.hash(password, salt);
@@ -55,52 +55,32 @@ const registerUser = async (req, res) => {
         email,
         isSuperAdmin: false,
         passwordHash,
-        image:""
+        image: "",
       });
       const savedUser = await user.save(user);
 
       if (savedUser) {
         res.status(201).json({
           status: 1,
-          data: { name: savedUser.name, avatar:savedUser.image },
+          data: { name: savedUser.name, avatar: savedUser.image },
           message: "Registration successfull!",
         });
-      } else
-        throw {
-          status: 0,
-          message: "some error happend during registration",
-        };
-    } else
-      throw {
-        status: 0,
-        message: "Invalid email address.",
-      };
+      } else {
+        throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
+      }
+    } else {
+      throw new AppError(`Invalid email address.`, 404); // NJ-changes 13 Apr
+    }
   } catch (error) {
-    if (error.code === 11000)
-      res.status(409).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: error.name,
-            msg: error.message,
-            type: "AccountExistError",
-          },
-        },
-      });
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "RegisterError",
-        },
-      },
-    });
+    if (error.code === 11000) {
+      throw new AppError(
+        `AccountExistError, ${error.name}, ${error.message}`, // NJ-changes 13 Apr
+        409
+      );
+    }
+    next(new AppError(`RegisterError, ${error.name}, ${error.message}`, 400)); // NJ-changes 13 Apr
   }
-};
+});
 
 /**
  *
@@ -109,25 +89,19 @@ const registerUser = async (req, res) => {
  * @api     POST @/api/logger/login
  */
 
-const loginUser = async (req, res) => {
+const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password)
-      throw {
-        status: 0,
-        message: "Email or password missing!",
-        errorMessage: "Please enter required fields",
-      };
+    if (!email || !password) {
+      throw new AppError(`Email or password missing!`, 404); // NJ-changes 13 Apr
+    }
 
     const validateEmail = ValidateEmail(email);
 
-    if (!validateEmail)
-      throw {
-        status: 0,
-        message: "Email invalid",
-        errorMessage: "Email not valid",
-      };
+    if (!validateEmail) {
+      throw new AppError(`Email is not valid`, 404); // NJ-changes 13 Apr
+    }
 
     // const errors = validationResult(req)
     // if(errors){
@@ -136,24 +110,18 @@ const loginUser = async (req, res) => {
 
     const isUserExist = await Users.findOne({ email: email });
 
-    if (!isUserExist)
-      throw {
-        status: 0,
-        message: "User not available with this email address.",
-        errorMessage: "User does not exist with this email!!",
-      };
+    if (!isUserExist) {
+      throw new AppError(`User not available with this email address.`, 404); // NJ-changes 13 Apr
+    }
 
     const isPasswordCorrect = await bcrypt.compare(
       password,
       isUserExist.passwordHash
     );
 
-    if (!isPasswordCorrect)
-      throw {
-        status: 0,
-        message: "Password Incorrect",
-        errorMessage: "Check Credentials",
-      };
+    if (!isPasswordCorrect) {
+      throw new AppError(`Password is incorrect.`, 404); // NJ-changes 13 Apr
+    }
 
     // Token
     // const token = jwt.sign({
@@ -176,73 +144,60 @@ const loginUser = async (req, res) => {
         token: token,
         name: isUserExist.name,
         email: isUserExist.email,
-        image:isUserExist.image,
+        image: isUserExist.image,
         isSuperAdmin: isUserExist.isSuperAdmin,
       },
     });
   } catch (error) {
-    res.status(401).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "NotFoundError",
-        },
-      },
-    });
+    next(new AppError(`NotFoundError, ${error.name}, ${error.message}`)); // NJ-changes 13 Apr
   }
 };
 
-const updateUserProfile = async (req, res) => {
+const updateUserProfile = async (req, res, next) => {
   try {
     const { name, email } = req.body;
-    console.log(req.files)
-    console.log(req.body)
-    
+    console.log(req.files);
+    console.log(req.body);
+
     if (req.files) {
-      var image = await req.files
+      var image = await req.files;
     }
 
-    const user = await Users.findOne({id:req.user.id});
-    console.log(user)
-    if (!user)
-      throw {
-        status: 200,
-        message: "User does not found",
-      };
+    const user = await Users.findOne({ id: req.user.id });
+    console.log(user);
+    if (!user) {
+      throw new AppError(`User does not found`, 404); // NJ-changes 13 Apr
+    }
 
     // uploading image if exists
     let filenameToStore = "";
-    console.log(image)
+    console.log(image);
     if (req.files) {
       if (user.image) {
         filenameToStore = updateFile(req, "user_image", user.image);
       } else {
         filenameToStore = updateFile(req, "user_image", image.name);
       }
-    }else{
+    } else {
       filenameToStore = deleteFile("user_image", user.image);
     }
     // return res.status(200).json({done:filenameToStore})
 
-    
     // store data in DB
     user.name = name || user.name;
-    user.image = filenameToStore ;
+    user.image = filenameToStore;
     // user.image = filenameToStore != "" ? filenameToStore : !user.image ? "ddUserDefaultIcon.png" : user.image;
     const isSaved = await user.save();
-    console.log("image: ",isSaved)
-    if (!isSaved)
-      throw {
-        status: 404,
-        message: "User profile update fail",
-      };
-    
+    console.log("image: ", isSaved);
+    if (!isSaved) {
+      throw new AppError(`User profile update fail`, 404); // NJ-changes 13 Apr
+    }
 
-      // `${__dirname}/../public/${folder}/`+fileName
-    var filePath = path.join(`${__dirname}/../public/user_image/`, isSaved.image);
+    // `${__dirname}/../public/${folder}/`+fileName
+    var filePath = path.join(
+      `${__dirname}/../public/user_image/`,
+      isSaved.image
+    );
     var stat = fs.statSync(filePath);
 
     // res.writeHead(200, {
@@ -251,7 +206,7 @@ const updateUserProfile = async (req, res) => {
     // });
 
     // var readStream = fs.createReadStream(filePath);
-    var image = await fs.readFileSync(filePath,{encoding: 'base64'});
+    var image = await fs.readFileSync(filePath, { encoding: "base64" });
     // We replaced all the event handlers with a simple call to readStream.pipe()
     // readStream.pipe(response);
 
@@ -260,27 +215,22 @@ const updateUserProfile = async (req, res) => {
     //   // 'Content-Type': 'image/*',
     //   'Content-Length': stat.size,
     // });
-    return res.status(200).json({ message: "Product Updated successfully!", name:isSaved.name, avatar:image });
+    return res.status(200).json({
+      message: "Product Updated successfully!",
+      name: isSaved.name,
+      avatar: image,
+    });
 
     // return readStream.pipe(res)
-
   } catch (error) {
-    console.log("error",error)
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "Update Profile error",
-        },
-      },
-    });
+    // console.log("error", error);
+    next(
+      new AppError(`Update Profile error, ${error.name}, ${error.message}`, 500) // NJ-changes 13 Apr
+    );
   }
 };
 
-const userForgetPassword = async (req, res) => {
+const userForgetPassword = async (req, res, next) => {
   try {
     // if (req.cookies.token) throw "You are logged in, cannot make this request";
 
@@ -288,7 +238,9 @@ const userForgetPassword = async (req, res) => {
 
     const user = await Users.findOne({ email });
 
-    if (!user) throw "Email does not exist!";
+    if (!user) {
+      throw new AppError(`Email does not exist!`, 404); // NJ-changes 13 Apr
+    }
 
     const otp = createOtp(6, false); //parameters: 1-> length of OTP, 2-> specialChars: boolean
 
@@ -300,7 +252,9 @@ const userForgetPassword = async (req, res) => {
     });
 
     const storeOTP = await store.save(store);
-    if (!storeOTP) throw "Some error occured in OTP store!";
+    if (!storeOTP) {
+      throw new AppError(`Some error occured in OTP store!`, 403); // NJ-changes 13 Apr
+    }
 
     // send email -> inside helper folder
     sendEmail({ otp, to: email, msg: `Hello ${user.name}` });
@@ -309,9 +263,9 @@ const userForgetPassword = async (req, res) => {
       .status(200)
       .json({ success: true, message: `Email send to you!` });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ errormessage: `userForgetPassword ${error}` });
+    next(
+      new AppError(`userForgetPassword, ${error.name}, ${error.message}`, 500) // NJ-changes 13 Apr
+    );
   }
 };
 
@@ -320,31 +274,42 @@ const userForgetPassword = async (req, res) => {
  * @Endpoint    Post @/api/users/resetPassword
  * @access      Token access
  */
-const resetForgetPassword = async (req, res) => {
+const resetForgetPassword = async (req, res, next) => {
   try {
     // if (req.cookies.token) throw "You are logged in, cannot make this request";
     // look for email
     // const email = req.cookies.email;
     const { email } = req.body;
-    if (!email) throw "Provide email";
+    if (!email) {
+      throw new AppError(`Provide email`, 404); // NJ-changes 13 Apr
+    }
 
     // destructure to otp and password
     const { otp, password, passwordVerify } = req.body;
 
-    if (!otp || !password || !passwordVerify)
-      throw "Enter all required fields.";
+    if (!otp || !password || !passwordVerify) {
+      throw new AppError(`Enter all required fields.`, 404); // NJ-changes 13 Apr
+    }
 
-    if (password !== passwordVerify) throw "Make sure your password match.";
+    if (password !== passwordVerify) {
+      throw new AppError(`Make sure your password match.`, 401); // NJ-changes 13 Apr
+    }
 
     // find user using email
     const user = await Users.findOne({ email });
     const fp = await ForgetPassword.findOne({ otp });
 
-    if (!fp) throw "OTP does not exist!";
+    if (!fp) {
+      throw new AppError(`OTP does not exist!`, 404); // NJ-changes 13 Apr
+    }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (isMatch)
-      throw "You cannot set your previous password as new password, Enter new password!";
+    if (isMatch) {
+      throw new AppError(
+        `You cannot set your previous password as new password, Enter new password!`,
+        401
+      ); // NJ-changes 13 Apr
+    }
 
     if (user.email === fp.email) {
       // update password of user
@@ -365,82 +330,48 @@ const resetForgetPassword = async (req, res) => {
           .json({ success: true, message: "password reset successfully" })
       );
     } else {
-      throw "OTP does not match, try again!";
+      throw new AppError(`OTP does not match, try again!`, 401); // NJ-changes 13 Apr
     }
   } catch (error) {
-    return res
-      .status(500)
-      .json({ errormessage: `resetForgetPassword ${error}` });
+    next(
+      new AppError(`resetForgetPassword, ${error.name}, ${error.message}`, 500) // NJ-changes 13 Apr
+    );
   }
 };
 
-const logoutUser = async (req, res) => {
+const logoutUser = async (req, res, next) => {
   try {
-    const gettoken = req.headers["authorization"].split(" ")[1];
-    const result = await jwtr.destroy(req.jti);
+    // const gettoken = req.headers["authorization"].split(" ")[1];
+    // const result = await jwtr.destroy(req.jti);
     return res
       .status(200)
       .json({ status: 1, data: {}, message: "Logged out successfully!" });
     // return res.json({'message':'Logged out successfully!','token':token});
   } catch (error) {
-    if (process.env.NODE_ENV == "DEVELOPMENT") {
+    if (process.env.NODE_ENV == "development") {
       console.log(error);
     }
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "LogoutError",
-        },
-      },
-    });
+    next(new AppError(`LogoutError, ${error.name}, ${error.message}`)); // NJ-changes 13 Apr
   }
 };
 
 // update user profile
-const userPasswordChagne = async (req, res) => {
+const userPasswordChagne = async (req, res, next) => {
   try {
     var { currentPassword, newPassword } = req.body;
     // console.log(currentPassword);
 
     //  currentPassword could not be empty -----
     if (!currentPassword) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            errMsg: "Current password should not be empty",
-            type: "LoginError",
-          },
-        },
-      });
+      throw new AppError(`Current password should not be empty`, 404); // NJ-changes 13 Apr
     }
     //  new password could not be empty -----
     if (!newPassword) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            errMsg: "new password should not be empty",
-            type: "LoginError",
-          },
-        },
-      });
+      throw new AppError(`new password should not be empty`, 404); // NJ-changes 13 Apr
     }
     //  new password should not match current password -----
     if (currentPassword === newPassword) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            errMsg: "Current and new password should be same",
-            type: "LoginError",
-          },
-        },
-      });
+      throw new AppError(`Current and new password should be same`, 401); // NJ-changes 13 Apr
     }
 
     const user = await Users.findById(req.user);
@@ -455,9 +386,8 @@ const userPasswordChagne = async (req, res) => {
       user.passwordHash
     );
     if (!passwordCompare) {
-      res.json({ success: false, message: "Current password is incorrect." });
+      throw new AppError(`Current password is incorrect`, 404); // NJ-changes 13 Apr
     }
-
     // checking new password and hashing it
     const newPasswordHash = await bcrypt.hash(newPassword, salt);
     // console.log("password", newPasswordHash);
@@ -469,7 +399,7 @@ const userPasswordChagne = async (req, res) => {
       .status(200)
       .json({ status: 1, data: {}, message: "Password changed successfully!" });
   } catch (error) {
-    console.log(error);
+    next(new AppError(`error, ${error.name}, ${error.message}`)); // NJ-changes 13 Apr
   }
 };
 
