@@ -149,7 +149,7 @@ const loginUser = async (req, res, next) => {
       },
     });
   } catch (error) {
-    next(new AppError(`NotFoundError, ${error.name}, ${error.message}`)); // NJ-changes 13 Apr
+    next(new AppError(`NotFoundError, ${error.name}, ${error.message}`, 401)); // NJ-changes 13 Apr
   }
 };
 
