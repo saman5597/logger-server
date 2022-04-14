@@ -27,9 +27,7 @@ const authDevice = async (req, res, next) => {
     next();
   } catch (error) {
     // console.log(error);
-    next(
-      new AppError(`AuthenticationError, ${error.name}, ${error.message}`, 400)
-    ); // NJ-changes 13 Apr
+    next(new AppError(`${error.message}`, 400)); // NJ-changes 13 Apr
   }
 };
 

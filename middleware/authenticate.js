@@ -41,9 +41,7 @@ const authUser = async (req, res, next) => {
     next();
   } catch (error) {
     // console.log(error);
-    next(
-      new AppError(`Some error occured!, ${error.name}, ${error.message}`, 401)
-    ); // NJ-changes 13 Apr
+    next(new AppError(`${error.message}`, 401)); // NJ-changes 13 Apr
   }
 };
 
