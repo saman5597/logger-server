@@ -16,6 +16,8 @@ const {
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
 const { sendCrashEmail } = require("../helper/sendEmail");
+const AppError = require("../utils/appError");
+const catchAsync = require("../utils/catchAsync");
 // const { type } = require("express/lib/response");
 
 /**
@@ -24,71 +26,60 @@ const { sendCrashEmail } = require("../helper/sendEmail");
  * @param {*} res
  */
 
-const getAllRegisterProject = async (req, res) => {
-  try {
-    const allRgisterProject = await Projects.find();
-    return res.status(200).json({
-      status: 1,
-      data: { data: allRgisterProject },
-      message: "Successful",
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
-  }
-};
+const getAllRegisterProject = catchAsync(async (req, res, next) => {
+  const allRgisterProject = await Projects.find();
+  return res.status(200).json({
+    status: 1,
+    data: { data: allRgisterProject },
+    message: "Successful",
+  });
+});
 
 /**
  * api      POST @/project_name
  * desc     To create new project
  */
 
-const createNewProject = async (req, res) => {
-  try {
-    const { name, description, device_type } = req.body;
-    // device type will be  array
-    const arrayOfObjects = [];
+const createNewProject = catchAsync(async (req, res, next) => {
+  const { name, description, device_type } = req.body;
+  // device type will be  array
+  const arrayOfObjects = [];
 
-    const typeCodeArray = [];
+  const typeCodeArray = [];
 
-    if (device_type.length === 0)
-      throw { message: "Please provide atleast one device name!" };
+  if (device_type.length === 0) {
+    throw new AppError(`Please provide atleast one device name!`, 404); // NJ-changes 13 Apr
+  }
 
-    //  loop and set the typecode and enum code
-    for (let i = 0; i < device_type.length; i++) {
-      arrayOfObjects.push({ typeCode: `00${i + 1}`, typeName: device_type[i] });
-      typeCodeArray.push(`"00${i + 1}"`);
-    }
+  //  loop and set the typecode and enum code
+  for (let i = 0; i < device_type.length; i++) {
+    arrayOfObjects.push({ typeCode: `00${i + 1}`, typeName: device_type[i] });
+    typeCodeArray.push(`"00${i + 1}"`);
+  }
 
-    const isCollectionExist = await checkCollectionName(name + "_collection");
+  const isCollectionExist = await checkCollectionName(name + "_collection");
 
-    if (isCollectionExist)
-      throw { message: "Project with provided name already exist!!" };
+  if (isCollectionExist) {
+    throw new AppError(`Project with provided name already exist!!`, 404); // NJ-changes 13 Apr
+  }
 
-    const collection_name =
-      removeAllSpecialChars(name).toLowerCase() + "_collection";
-    const project = await new Projects({
-      name,
-      description,
-      code: makeid(5),
-      device_types: arrayOfObjects,
-      collection_name,
-    });
-    const savedProject = await project.save(project);
-    if (!savedProject) throw { message: "Project not created!!" };
+  const collection_name =
+    removeAllSpecialChars(name).toLowerCase() + "_collection";
+  const project = await new Projects({
+    name,
+    description,
+    code: makeid(5),
+    device_types: arrayOfObjects,
+    collection_name,
+  });
+  const savedProject = await project.save(project);
+  if (!savedProject) {
+    throw new AppError(`Project not created!!`, 401); // NJ-changes 13 Apr
+  }
 
-    // dynamic schema
+  // dynamic schema
 
-    const schemaBlueprint = `
+  const schemaBlueprint = `
     const mongoose = require('mongoose');
     const device = require('./device')
     const logs = require('./logs')
@@ -126,113 +117,54 @@ const createNewProject = async (req, res) => {
         
         module.exports = ${collection_name}
         `;
-    console.log(`${__dirname.concat(`/../model/${collection_name}.js`)}`);
-    fs.writeFile(
-      `${__dirname.concat(`/../model/${collection_name}.js`)}`,
-      schemaBlueprint,
-      {
-        encoding: "utf8",
-        flag: "w",
-        mode: 0o666,
-      },
-      (err) => {
-        if (err)
-          throw { message: "Some error occured during project creation" };
-        console.log("File written successfully");
+  console.log(`${__dirname.concat(`/../model/${collection_name}.js`)}`);
+  fs.writeFile(
+    `${__dirname.concat(`/../model/${collection_name}.js`)}`,
+    schemaBlueprint,
+    {
+      encoding: "utf8",
+      flag: "w",
+      mode: 0o666,
+    },
+    (err) => {
+      if (err) {
+        throw new AppError(`Some error occured during project creation`, 403); // NJ-changes 13 Apr
       }
-    );
+      // console.log("File written successfully");
+    }
+  );
 
-    return res.status(201).json({
-      status: 1,
-      data: { savedProject: savedProject },
-      message: "Project Saved succefully",
-    });
-  } catch (error) {
-    console.log(error);
-    if (error.code === 11000)
-      return res.status(409).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: error.name,
-            msg: "Duplicate Project",
-            type: "DuplicatePojectError",
-          },
-        },
-      });
-    return res.status(404).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "NotFoundError",
-        },
-      },
-    });
-  }
-};
+  return res.status(201).json({
+    status: 1,
+    data: { savedProject: savedProject },
+    message: "Project Saved succefully",
+  });
+});
 
 /**
  * api      GET @api/logger/project/:projectCode
  * @param {project code} req
  * @param {whole project data} res
  */
-const getProjectWithProjectCode = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    // if not enter projectCode
+const getProjectWithProjectCode = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  // if not enter projectCode
 
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const getProject = await Projects.findOne({ code: projectCode });
-    if (!getProject) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    res.status(200).json({
-      status: 1,
-      data: { data: getProject },
-      message: "Successful",
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
   }
-};
+
+  const getProject = await Projects.findOne({ code: projectCode });
+  if (!getProject) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+
+  res.status(200).json({
+    status: 1,
+    data: { data: getProject },
+    message: "Successful",
+  });
+});
 
 /**
  * api      POST @api/logger/updateProjectDetail/:projectCode
@@ -242,45 +174,45 @@ const getProjectWithProjectCode = async (req, res) => {
  * @param {successful} res
  */
 
-const updateProjectWithProjectCode = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    const { name, description, device_type } = req.body;
+const updateProjectWithProjectCode = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  const { name, description, device_type } = req.body;
 
-    const getProjectWithProjectCode = await Projects.findOne({
-      code: projectCode,
-    });
+  const getProjectWithProjectCode = await Projects.findOne({
+    code: projectCode,
+  });
 
-    if (!getProjectWithProjectCode)
-      throw { message: "We don't have any project with this code!!" };
-    if (!device_type) {
+  if (!getProjectWithProjectCode) {
+    throw new AppError(`We don't have any project with this code!!.`, 401); // NJ-changes 13 Apr
+  }
+  // if (!device_type) {
+  // }
+
+  // Add new element to array
+
+  const addNewElementToArray = [];
+  const newTypeCodeArray = [];
+  if (device_type) {
+    const getLengthOfExistingDeviceType =
+      getProjectWithProjectCode.device_types.length;
+
+    getProjectWithProjectCode.device_types.map((deviceTypes) =>
+      addNewElementToArray.push(deviceTypes)
+    );
+
+    getProjectWithProjectCode.device_types.map((typeCodes) =>
+      newTypeCodeArray.push(`"${typeCodes.typeCode}"`)
+    );
+
+    for (let i = 0; i < device_type.length; i++) {
+      addNewElementToArray.push({
+        typeCode: `00${getLengthOfExistingDeviceType + i + 1}`,
+        typeName: device_type[i],
+      });
+      newTypeCodeArray.push(`"00${getLengthOfExistingDeviceType + i + 1}"`);
     }
 
-    // Add new element to array
-
-    const addNewElementToArray = [];
-    const newTypeCodeArray = [];
-    if (device_type) {
-      const getLengthOfExistingDeviceType =
-        getProjectWithProjectCode.device_types.length;
-
-      getProjectWithProjectCode.device_types.map((deviceTypes) =>
-        addNewElementToArray.push(deviceTypes)
-      );
-
-      getProjectWithProjectCode.device_types.map((typeCodes) =>
-        newTypeCodeArray.push(`"${typeCodes.typeCode}"`)
-      );
-
-      for (let i = 0; i < device_type.length; i++) {
-        addNewElementToArray.push({
-          typeCode: `00${getLengthOfExistingDeviceType + i + 1}`,
-          typeName: device_type[i],
-        });
-        newTypeCodeArray.push(`"00${getLengthOfExistingDeviceType + i + 1}"`);
-      }
-
-      const schemaBlueprint = `
+    const schemaBlueprint = `
       const mongoose = require('mongoose');
       const device = require('./device')
       const logs = require('./logs')
@@ -319,212 +251,173 @@ const updateProjectWithProjectCode = async (req, res) => {
                 module.exports = ${getProjectWithProjectCode.collection_name}
                 `;
 
-      fs.writeFile(
-        `${__dirname.concat(
-          `/../model/${getProjectWithProjectCode.collection_name}.js`
-        )}`,
-        schemaBlueprint,
-        {
-          encoding: "utf8",
-          flag: "w",
-          mode: 0o666,
-        },
-        (err) => {
-          if (err)
-            throw { message: "Some error occured during project updation" };
-          console.log("File update failed");
+    fs.writeFile(
+      `${__dirname.concat(
+        `/../model/${getProjectWithProjectCode.collection_name}.js`
+      )}`,
+      schemaBlueprint,
+      {
+        encoding: "utf8",
+        flag: "w",
+        mode: 0o666,
+      },
+      (err) => {
+        if (err) {
+          throw new AppError(
+            `Some error occured during project updation.`,
+            401
+          ); // NJ-changes 13 Apr
         }
-      );
+
+        // console.log("File update failed");
+      }
+    );
+  }
+
+  getProjectWithProjectCode.name = name ? name : getProjectWithProjectCode.name;
+  getProjectWithProjectCode.description = description;
+  getProjectWithProjectCode.device_types = device_type
+    ? addNewElementToArray
+    : getProjectWithProjectCode.device_types;
+  // Updating Data
+
+  const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
+
+  if (!isGetProjectWithProjectCodeSaved) {
+    throw new AppError(`Some error occured during updating the project!!`, 401); // NJ-changes 13 Apr
+  }
+
+  res.status(200).json({
+    status: 1,
+    data: {},
+    message: "Project details Updated!!",
+  });
+});
+
+const addEmailWithProjectCode = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  console.log(req.body);
+  const { email } = req.body;
+  if (!email) {
+    throw new AppError(`No email available.`, 404); // NJ-changes 13 Apr
+  }
+
+  let emailError = [];
+  email.map((em) => {
+    if (!ValidateHelper.ValidateEmail(em)) {
+      throw new AppError(`Check entered emails.`, 404); // NJ-changes 13 Apr
     }
+    if (!emailError.includes(em)) {
+      emailError.push(em);
+    }
+  });
 
-    getProjectWithProjectCode.name = name
-      ? name
-      : getProjectWithProjectCode.name;
-    getProjectWithProjectCode.description = description;
-    getProjectWithProjectCode.device_types = device_type
-      ? addNewElementToArray
-      : getProjectWithProjectCode.device_types;
-    // Updating Data
+  const getProjectWithProjectCode = await Projects.findOne({
+    code: projectCode,
+  });
 
-    const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
-
-    if (!isGetProjectWithProjectCodeSaved)
-      throw {
-        status: 0,
-        message: "Some error occured during updating the project!!",
-      };
-    res.status(200).json({
-      status: 1,
-      data: {},
-      message: "Project details Updated!!",
-    });
-  } catch (error) {
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "ProjectUpdateError",
-        },
-      },
-    });
+  if (!getProjectWithProjectCode) {
+    throw new AppError(`Project does not exist.`, 401); // NJ-changes 13 Apr
   }
-};
 
-const addEmailWithProjectCode = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    console.log(req.body);
-    const { email } = req.body;
-    if (!email) throw "No email available.";
+  getProjectWithProjectCode.reportEmail = [...emailError];
 
-    let emailError = [];
-    email.map((em) => {
-      if (!ValidateHelper.ValidateEmail(em)) throw "Check entered emails.";
-      if (!emailError.includes(em)) {
-        emailError.push(em);
-      }
-    });
+  const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
-    const getProjectWithProjectCode = await Projects.findOne({
+  if (!isGetProjectWithProjectCodeSaved) {
+    throw new AppError(`Some error occured during updating the project!!`, 400); // NJ-changes 13 Apr
+  }
+
+  const emailList = await Projects.findOne(
+    {
       code: projectCode,
-    });
+    },
+    { reportEmail: 1, _id: 0 }
+  );
 
-    if (!getProjectWithProjectCode) throw "Project does not exist.";
+  res.status(200).json({
+    status: 1,
+    data: emailList,
+    message: "Project details Updated!!",
+  });
+});
 
-    getProjectWithProjectCode.reportEmail = [...emailError];
+const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
+  const { project_code } = req.params;
+  // check project exist or not
+  const findProjectWithCode = await Projects.findOne({ code: project_code });
 
-    const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
+  if (!findProjectWithCode) {
+    throw new AppError(`Project does not exist`, 404); // NJ-changes 13 Apr
+  }
 
-    if (!isGetProjectWithProjectCodeSaved)
-      throw {
-        status: 0,
-        message: "Some error occured during updating the project!!",
-      };
+  const collectionName = findProjectWithCode.collection_name;
+  console.log(require(`../model/${collectionName}`));
+  const modelReference = require(`../model/${collectionName}`);
+  // testprojectmodified_collection
 
-    
+  const {
+    version,
+    type,
+    // logs
+    log,
+    // device
+    device,
+  } = req.body;
 
-    const emailList = await Projects.findOne({
-      code: projectCode,
-    }, { reportEmail: 1, _id: 0 });
+  //  above details will be put in project tables
 
-    res.status(200).json({
-      status: 1,
-      data: emailList,
-      message: "Project details Updated!!",
-    });
+  //  Make entries in Device
+  const Dvc = await new Device({
+    did: device.did,
+    name: device.name,
+    manufacturer: device.manufacturer,
+    os: {
+      name: device.os.name,
+      type: device.os.type,
+    },
+    battery: device.battery,
+  });
 
+  const isDeviceSaved = await Dvc.save(Dvc);
 
-  } catch (error) {
-    console.log("catch error: ", error);
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error,
-          msg: error.message,
-          type: "ProjectUpdateError",
-        },
-      },
+  if (!isDeviceSaved) {
+    throw new AppError(`Device save operation failed!`, 401); // NJ-changes 13 Apr
+  }
+
+  const putDataIntoLoggerDb = await new modelReference({
+    version: version,
+    type: type,
+    device: isDeviceSaved._id,
+    log: {
+      file: log.file,
+      date: log.date,
+      message: decodeURI(log.msg),
+      type: log.type,
+    },
+  });
+
+  const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+  // console.log("isLoggerSaved", isLoggerSaved);
+  // console.log(putDataIntoLoggerDb);
+  if (!isLoggerSaved) {
+    throw new AppError(`Logger entry failed!`, 401); // NJ-changes 13 Apr
+  }
+
+  // console.log(log.message)
+  if (log.type == "error") {
+    findProjectWithCode.reportEmail.map((email) => {
+      // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
+      sendCrashEmail({ msg: log.msg, to: email, from: "logcat@gmail.com" });
     });
   }
-};
 
-const makeEntriesInDeviceLogger = async (req, res) => {
-  try {
-    const { project_code } = req.params;
-    // check project exist or not
-    const findProjectWithCode = await Projects.findOne({ code: project_code });
-
-    if (!findProjectWithCode)
-      throw {
-        status: 0,
-        message: "Project does not exist",
-      };
-    const collectionName = findProjectWithCode.collection_name;
-    console.log(require(`../model/${collectionName}`));
-    const modelReference = require(`../model/${collectionName}`);
-    // testprojectmodified_collection
-
-    const {
-      version,
-      type,
-      // logs
-      log,
-      // device
-      device,
-    } = req.body;
-
-    //  above details will be put in project tables
-
-    //  Make entries in Device
-    const Dvc = await new Device({
-      did: device.did,
-      name: device.name,
-      manufacturer: device.manufacturer,
-      os: {
-        name: device.os.name,
-        type: device.os.type,
-      },
-      battery: device.battery,
-    });
-
-    const isDeviceSaved = await Dvc.save(Dvc);
-
-    if (!isDeviceSaved) throw "Device save operation failed!";
-
-    const putDataIntoLoggerDb = await new modelReference({
-      version: version,
-      type: type,
-      device: isDeviceSaved._id,
-      log: {
-        file: log.file,
-        date: log.date,
-        message: decodeURI(log.msg),
-        type: log.type,
-      },
-    });
-
-    const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    // console.log("isLoggerSaved", isLoggerSaved);
-    // console.log(putDataIntoLoggerDb);
-    if (!isLoggerSaved)
-      throw {
-        status: 0,
-        message: "Logger entry failed!",
-      };
-
-      // console.log(log.message)
-      if (log.type == 'error') {
-        findProjectWithCode.reportEmail.map(email=>{
-          // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
-          sendCrashEmail({msg:log.msg, to:email, from:'logcat@gmail.com'})
-        })
-      }
-
-    res.status(201).json({
-      status: 1,
-      data: {},
-      message: "Successful",
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(400).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "LoggerError",
-        },
-      },
-    });
-  }
-};
+  res.status(201).json({
+    status: 1,
+    data: {},
+    message: "Successful",
+  });
+});
 
 /**
  * desc     get project with filter
@@ -532,86 +425,60 @@ const makeEntriesInDeviceLogger = async (req, res) => {
  *
  */
 
-const getProjectWithFilter = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
+const getProjectWithFilter = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
 
-    if (!req.query.projectType) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project type is required",
-            msg: "Project type is required",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid",
-      };
-
-    const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-
-    let logs;
-
-    // const totalCount = await collectionName.estimatedDocumentCount({})
-    const countObjQuery = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }),
-      req.query
-    ).filter();
-    // .logFilter();
-    const countObj = await countObjQuery.query;
-
-    const features = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }).populate({
-        path: 'device',
-        select: 'did name code manufacturer os'
-      }),
-      req.query
-    )
-      .filter()
-      .sort()
-      // .logFilter()
-      .paginate();
-
-    // console.log("countObj", features);
-    logs = await features.query;
-
-    // Sending type name instead of type code
-    isProjectExist.device_types.map((device) => {
-      logs.map((obj) => {
-        if (device.typeCode === obj.device_types) {
-          obj.device_types = `${obj.device_types}|${device.typeName}`;
-        }
-      });
-    });
-
-    return res.json({
-      status: 1,
-      message: "Successfull ",
-      data: { count: countObj.length, pageLimit: logs.length, logs: logs },
-    });
-  } catch (error) {
-    console.log(error)
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!req.query.projectType) {
+    throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
   }
-};
+
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+  }
+
+  const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+
+  let logs;
+
+  // const totalCount = await collectionName.estimatedDocumentCount({})
+  const countObjQuery = new QueryHelper(
+    collectionName.find({ type: req.query.projectType }),
+    req.query
+  ).filter();
+  // .logFilter();
+  const countObj = await countObjQuery.query;
+
+  const features = new QueryHelper(
+    collectionName.find({ type: req.query.projectType }).populate({
+      path: "device",
+      select: "did name code manufacturer os",
+    }),
+    req.query
+  )
+    .filter()
+    .sort()
+    // .logFilter()
+    .paginate();
+
+  // console.log("countObj", features);
+  logs = await features.query;
+
+  // Sending type name instead of type code
+  isProjectExist.device_types.map((device) => {
+    logs.map((obj) => {
+      if (device.typeCode === obj.device_types) {
+        obj.device_types = `${obj.device_types}|${device.typeName}`;
+      }
+    });
+  });
+
+  return res.json({
+    status: 1,
+    message: "Successfull ",
+    data: { count: countObj.length, pageLimit: logs.length, logs: logs },
+  });
+});
 
 /**
  *
@@ -619,410 +486,301 @@ const getProjectWithFilter = async (req, res) => {
  * @param {id of all device} res
  * @returns
  */
-const getdeviceIdProjectWise = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid",
-      };
-
-    const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    const listOfId = await collectionName
-      .find({})
-      .populate("device")
-      .select("did");
-    return res.status(200).json({
-      status: 1,
-      data: { deviceIds: listOfId },
-      message: "Successful",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+const getdeviceIdProjectWise = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
   }
-};
+
+  const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+  const listOfId = await collectionName
+    .find({})
+    .populate("device")
+    .select("did");
+  return res.status(200).json({
+    status: 1,
+    data: { deviceIds: listOfId },
+    message: "Successful",
+  });
+});
 
 /**
  * desc     provide log count, logType wise count, log created date
  * api      @/api/logger/projects/getLogsCount/:projectCode
  */
 
-const getProjectLogs = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    const isProjectExist = await Projects.findOne({ code: projectCode });
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required ",
-      };
-    }
-
-    if (!req.query.startDate || !req.query.endDate) {
-      throw {
-        message: "Provide start date and end date.",
-      };
-    }
-
-    // console.log("req query",req.params)
-
-    if (!req.params.projectCode) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    const typeWiseCount = await collectionName.aggregate([
-      // {$unwind : '$log'},
-      {
-        $match: {
-          "log.date": {
-            $gte: new Date(req.query.startDate),
-            $lte: new Date(req.query.endDate),
-          },
-          type: req.query.projectType,
-        },
-      },
-      { $group: { _id: "$log.type", count: { $sum: 1 } } },
-      { $project: { logType: "$_id", count: 1, _id: 0 } },
-    ]);
-    const totalLogCount = await collectionName.aggregate([
-      // {$unwind : '$log'},
-      {
-        $match: {
-          "log.date": {
-            $gte: new Date(req.query.startDate),
-            $lte: new Date(req.query.endDate),
-          },
-          type: req.query.projectType,
-        },
-      },
-      { $group: { _id: "null", count: { $sum: 1 } } },
-    ]);
-    const lastLogEntry = await collectionName.findOne().sort({ createdAt: -1 });
-
-    return res.status(200).json({
-      status: 1,
-      data: {
-        totalLogCount: totalLogCount.length ? totalLogCount[0].count : null,
-        typeWiseCount,
-        lastLogEntry: lastLogEntry ? lastLogEntry.createdAt : null,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+const getProjectLogs = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getErrorCountByVersion = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    const isProjectExist = await Projects.findOne({ code: projectCode });
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
-
-    const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    const typeWiseCount = await collectionName.aggregate([
-      { $match: { "log.type": "error", type: req.query.projectType } },
-      { $group: { _id: "$version", count: { $sum: 1 } } },
-    ]);
-
-    // const typeWiseCount = await collectionName.aggregate([
-    //   {
-    //     $unwind: '$log'
-    //   },
-    //     { $match: { 'log.type':"info" } },
-    //     { $group: { _id: "$version", count: { $sum: 1 } } },
-    //   ]);
-    console.log(typeWiseCount);
-
-    return res.status(200).json({
-      status: 1,
-      data: {
-        typeWiseCount,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getErrorCountByOSArchitecture = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    const isProjectExist = await Projects.findOne({ code: projectCode });
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    if (!isProjectExist)
-      throw {
-        message: "Project code invalid ",
-      };
-
-    const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
-    const typeWiseCount = await collectionName.aggregate([
-      { $match: { "log.type": "error", type: req.query.projectType } },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      { $group: { _id: "$device.os.name", count: { $sum: 1 } } },
-    ]);
-
-    return res.status(200).json({
-      status: 1,
-      data: {
-        typeWiseCount,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!req.query.startDate || !req.query.endDate) {
+    throw new AppError(`Provide start date and end date.`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getDeviceCount = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
+  // console.log("req query",req.params)
 
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection)
-      throw {
-        message: "Project code invalid ",
-      };
-    const createdAt = projectCollection.createdAt;
-
-    const currentStatus = projectCollection.status;
-
-    const modelList = projectCollection.device_types;
-
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    if (!collectionName)
-      throw {
-        message: "Collection Not Found ",
-      };
-    const collection = await collectionName
-      .find()
-      .populate("device")
-      .distinct("device.did");
-
-    return res.status(200).json({
-      status: 1,
-      data: {
-        projectCreationDate: createdAt,
-        currentStatus,
-        modelList,
-        deviceCount: collection.length,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!req.params.projectCode) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
   }
-};
 
-const dateWiseLogCount = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
+  const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+  const typeWiseCount = await collectionName.aggregate([
+    // {$unwind : '$log'},
+    {
+      $match: {
+        "log.date": {
+          $gte: new Date(req.query.startDate),
+          $lte: new Date(req.query.endDate),
         },
-      });
-    }
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
+        type: req.query.projectType,
+      },
+    },
+    { $group: { _id: "$log.type", count: { $sum: 1 } } },
+    { $project: { logType: "$_id", count: 1, _id: 0 } },
+  ]);
+  const totalLogCount = await collectionName.aggregate([
+    // {$unwind : '$log'},
+    {
+      $match: {
+        "log.date": {
+          $gte: new Date(req.query.startDate),
+          $lte: new Date(req.query.endDate),
         },
-      });
-    }
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    const countResponse = await collectionName.aggregate([
-      // {$unwind : '$log'},
-      {
-        $match: {
-          $and: [
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
+        type: req.query.projectType,
+      },
+    },
+    { $group: { _id: "null", count: { $sum: 1 } } },
+  ]);
+  const lastLogEntry = await collectionName.findOne().sort({ createdAt: -1 });
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      totalLogCount: totalLogCount.length ? totalLogCount[0].count : null,
+      typeWiseCount,
+      lastLogEntry: lastLogEntry ? lastLogEntry.createdAt : null,
+    },
+    message: "successfull",
+  });
+});
+
+const getErrorCountByVersion = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+  }
+
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+  }
+
+  const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+  const typeWiseCount = await collectionName.aggregate([
+    { $match: { "log.type": "error", type: req.query.projectType } },
+    { $group: { _id: "$version", count: { $sum: 1 } } },
+  ]);
+
+  // const typeWiseCount = await collectionName.aggregate([
+  //   {
+  //     $unwind: '$log'
+  //   },
+  //     { $match: { 'log.type':"info" } },
+  //     { $group: { _id: "$version", count: { $sum: 1 } } },
+  //   ]);
+  // console.log(typeWiseCount);
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      typeWiseCount,
+    },
+    message: "successfull",
+  });
+});
+
+const getErrorCountByOSArchitecture = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+  }
+
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+  }
+
+  const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+  const typeWiseCount = await collectionName.aggregate([
+    { $match: { "log.type": "error", type: req.query.projectType } },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    { $group: { _id: "$device.os.name", count: { $sum: 1 } } },
+  ]);
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      typeWiseCount,
+    },
+    message: "successfull",
+  });
+});
+
+const getDeviceCount = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+  }
+
+  const createdAt = projectCollection.createdAt;
+
+  const currentStatus = projectCollection.status;
+
+  const modelList = projectCollection.device_types;
+
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  if (!collectionName) {
+    throw new AppError(`Collection Not Found`, 404); // NJ-changes 13 Apr
+  }
+
+  const collection = await collectionName
+    .find()
+    .populate("device")
+    .distinct("device.did");
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      projectCreationDate: createdAt,
+      currentStatus,
+      modelList,
+      deviceCount: collection.length,
+    },
+    message: "successfull",
+  });
+});
+
+const dateWiseLogCount = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+  }
+
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+  }
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  const countResponse = await collectionName.aggregate([
+    // {$unwind : '$log'},
+    {
+      $match: {
+        $and: [
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
             },
-            { type: req.query.projectType },
-            // {logType: {"$ne": "error"}}
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      {
-        $group: {
-          _id: "$device.did",
-        },
-      },
-    ]);
-    const response = await collectionName.aggregate([
-      // {$unwind : '$log'},
-      {
-        $match: {
-          "log.date": {
-            $gte: new Date(req.query.startDate),
-            $lte: new Date(req.query.endDate),
           },
-          "log.type": "error",
-          type: req.query.projectType,
-        },
+          { type: req.query.projectType },
+          // {logType: {"$ne": "error"}}
+        ],
       },
-      {
-        $group: {
-          _id: {
-            DATE: { $substr: ["$log.date", 0, 10] },
-          },
-          data: { $sum: 1 },
-        },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
       },
-      // { $sort: { "DATE": -1 } },
-      {
-        $project: {
-          _id: 0,
-          date: "$_id.DATE",
-          data: 1,
-        },
+    },
+    {
+      $group: {
+        _id: "$device.did",
       },
-      {
-        $group: {
-          _id: null,
-          stats: { $push: "$$ROOT" },
+    },
+  ]);
+  const response = await collectionName.aggregate([
+    // {$unwind : '$log'},
+    {
+      $match: {
+        "log.date": {
+          $gte: new Date(req.query.startDate),
+          $lte: new Date(req.query.endDate),
         },
+        "log.type": "error",
+        type: req.query.projectType,
       },
-      {
-        $project: {
-          stats: {
-            $map: {
-              input: getDaysArray(
-                new Date(req.query.startDate),
-                new Date(req.query.endDate)
-              ),
-              as: "date_new",
-              in: {
-                $let: {
-                  vars: {
-                    dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
-                  },
-                  in: {
-                    $cond: {
-                      if: { $ne: ["$$dateIndex", -1] },
-                      then: {
-                        $arrayElemAt: ["$stats", "$$dateIndex"],
-                      },
-                      else: {
-                        date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
-                        data: 0,
-                      },
+    },
+    {
+      $group: {
+        _id: {
+          DATE: { $substr: ["$log.date", 0, 10] },
+        },
+        data: { $sum: 1 },
+      },
+    },
+    // { $sort: { "DATE": -1 } },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id.DATE",
+        data: 1,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        stats: { $push: "$$ROOT" },
+      },
+    },
+    {
+      $project: {
+        stats: {
+          $map: {
+            input: getDaysArray(
+              new Date(req.query.startDate),
+              new Date(req.query.endDate)
+            ),
+            as: "date_new",
+            in: {
+              $let: {
+                vars: {
+                  dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
+                },
+                in: {
+                  $cond: {
+                    if: { $ne: ["$$dateIndex", -1] },
+                    then: {
+                      $arrayElemAt: ["$stats", "$$dateIndex"],
+                    },
+                    else: {
+                      date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                      data: 0,
                     },
                   },
                 },
@@ -1031,410 +789,252 @@ const dateWiseLogCount = async (req, res) => {
           },
         },
       },
-      {
-        $unwind: "$stats",
+    },
+    {
+      $unwind: "$stats",
+    },
+    {
+      $replaceRoot: {
+        newRoot: "$stats",
       },
-      {
-        $replaceRoot: {
-          newRoot: "$stats",
-        },
-      },
-    ]);
-    res.status(200).json({
-      status: 1,
-      data: { response, count: countResponse.length || 0 },
-      message: "Log count on the basis of date.",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    },
+  ]);
+  res.status(200).json({
+    status: 1,
+    data: { response, count: countResponse.length || 0 },
+    message: "Log count on the basis of date.",
+  });
+});
+
+const getLogsCountWithOs = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getLogsCountWithOs = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    // if (!collectionName)
-    //   throw {
-    //     message: "Project Not Found ",
-    //   };
-
-    const osTotalCount = await collectionName.countDocuments();
-    const osParticularCount = await collectionName.aggregate([
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      { $group: { _id: "$device.os.name", count: { $sum: 1 } } },
-      { $project: { osArchitecture: "$_id", count: 1, _id: 0 } },
-    ]);
-
-    console.log(osParticularCount);
-    return res.status(200).json({
-      status: 1,
-      data: {
-        deviceCount: osTotalCount,
-        osParticularCount: osParticularCount[0].count,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getLogsCountWithModelName = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  // if (!collectionName)
+  //   throw {
+  //     message: "Project Not Found ",
+  //   };
 
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    // if (!collectionName)
-    //   throw {
-    //     message: "Project Not Found ",
-    //   };
-
-    const modelTotalCount = await collectionName.countDocuments();
-    const modelNameParticularCount = await collectionName.aggregate([
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
+  const osTotalCount = await collectionName.countDocuments();
+  const osParticularCount = await collectionName.aggregate([
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
       },
-      { $group: { _id: "$device.name", count: { $sum: 1 } } },
-      { $project: { modelName: "$_id", count: 1, _id: 0 } },
-    ]);
-    return res.status(200).json({
-      status: 1,
-      data: {
-        deviceCount: modelTotalCount,
-        modelNameParticularCount: modelNameParticularCount[0].count,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    },
+    { $group: { _id: "$device.os.name", count: { $sum: 1 } } },
+    { $project: { osArchitecture: "$_id", count: 1, _id: 0 } },
+  ]);
+
+  console.log(osParticularCount);
+  return res.status(200).json({
+    status: 1,
+    data: {
+      deviceCount: osTotalCount,
+      osParticularCount: osParticularCount[0].count,
+    },
+    message: "successfull",
+  });
+});
+
+const getLogsCountWithModelName = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
   }
-};
 
-const getlogMsgOccurence = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    // const { msg } = req.query;
-    if (!req.query.msg) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Log message not provided.",
-            msg: "Log message not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    var trimmedLogMsg;
-    if (req.query.msg.length > 26) {
-      trimmedLogMsg = req.query.msg.substring(0, 26);
-    } else trimmedLogMsg = req.query.msg;
-
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-
-    const response = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {did:req.query.macId },
-            { "log.message": { $regex: trimmedLogMsg } },
-            { "log.type": "error" },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      { $group: { _id: "$device.did", count: { $sum: 1 } } },
-    ]);
-
-    return res.status(200).json({
-      status: 1,
-      data: {
-        response,
-      },
-      message: "successfull",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
   }
-};
 
-const logOccurrences = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  // if (!collectionName)
+  //   throw {
+  //     message: "Project Not Found ",
+  //   };
 
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
+  const modelTotalCount = await collectionName.countDocuments();
+  const modelNameParticularCount = await collectionName.aggregate([
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    { $group: { _id: "$device.name", count: { $sum: 1 } } },
+    { $project: { modelName: "$_id", count: 1, _id: 0 } },
+  ]);
+  return res.status(200).json({
+    status: 1,
+    data: {
+      deviceCount: modelTotalCount,
+      modelNameParticularCount: modelNameParticularCount[0].count,
+    },
+    message: "successfull",
+  });
+});
 
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
+const getlogMsgOccurence = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
 
-    if (!req.query.logMsg) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Log message not provided.",
-            msg: "Log message not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+  }
 
-    var trimmedLogMsg;
-    if (req.query.logMsg.length > 26) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 26);
-    } else trimmedLogMsg = req.query.logMsg;
-    if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
-      trimmedLogMsg = trimmedLogMsg.concat(")")
-    }
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    const response = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+  }
+
+  // const { msg } = req.query;
+  if (!req.query.msg) {
+    throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
+  }
+
+  var trimmedLogMsg;
+  if (req.query.msg.length > 26) {
+    trimmedLogMsg = req.query.msg.substring(0, 26);
+  } else trimmedLogMsg = req.query.msg;
+
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+
+  const response = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {did:req.query.macId },
+          { "log.message": { $regex: trimmedLogMsg } },
+          { "log.type": "error" },
+          { type: req.query.projectType },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    { $group: { _id: "$device.did", count: { $sum: 1 } } },
+  ]);
+
+  return res.status(200).json({
+    status: 1,
+    data: {
+      response,
+    },
+    message: "successfull",
+  });
+});
+
+const logOccurrences = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required.`, 404); // NJ-changes 13 Apr
+  }
+
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+  }
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+
+  if (!req.query.logMsg) {
+    throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
+  }
+
+  var trimmedLogMsg;
+  if (req.query.logMsg.length > 26) {
+    trimmedLogMsg = req.query.logMsg.substring(0, 26);
+  } else trimmedLogMsg = req.query.logMsg;
+  if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
+    trimmedLogMsg = trimmedLogMsg.concat(")");
+  }
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  const response = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
             },
-            { "log.message": { $regex: trimmedLogMsg } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $group: {
-          _id: {
-            DATE: { $substr: ["$log.date", 0, 10] },
           },
-          data: { $sum: 1 },
-        },
+          { "log.message": { $regex: trimmedLogMsg } },
+          { type: req.query.projectType },
+        ],
       },
-      // { $sort: { "DATE": -1 } },
-      {
-        $project: {
-          _id: 0,
-          date: "$_id.DATE",
-          data: 1,
+    },
+    {
+      $group: {
+        _id: {
+          DATE: { $substr: ["$log.date", 0, 10] },
         },
+        data: { $sum: 1 },
       },
-      {
-        $group: {
-          _id: null,
-          stats: { $push: "$$ROOT" },
-        },
+    },
+    // { $sort: { "DATE": -1 } },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id.DATE",
+        data: 1,
       },
-      {
-        $project: {
-          stats: {
-            $map: {
-              input: getDaysArray(
-                new Date(req.query.startDate),
-                new Date(req.query.endDate)
-              ),
-              as: "date_new",
-              in: {
-                $let: {
-                  vars: {
-                    dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
-                  },
-                  in: {
-                    $cond: {
-                      if: { $ne: ["$$dateIndex", -1] },
-                      then: {
-                        $arrayElemAt: ["$stats", "$$dateIndex"],
-                      },
-                      else: {
-                        date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
-                        data: 0,
-                      },
+    },
+    {
+      $group: {
+        _id: null,
+        stats: { $push: "$$ROOT" },
+      },
+    },
+    {
+      $project: {
+        stats: {
+          $map: {
+            input: getDaysArray(
+              new Date(req.query.startDate),
+              new Date(req.query.endDate)
+            ),
+            as: "date_new",
+            in: {
+              $let: {
+                vars: {
+                  dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
+                },
+                in: {
+                  $cond: {
+                    if: { $ne: ["$$dateIndex", -1] },
+                    then: {
+                      $arrayElemAt: ["$stats", "$$dateIndex"],
+                    },
+                    else: {
+                      date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                      data: 0,
                     },
                   },
                 },
@@ -1443,177 +1043,139 @@ const logOccurrences = async (req, res) => {
           },
         },
       },
-      {
-        $unwind: "$stats",
+    },
+    {
+      $unwind: "$stats",
+    },
+    {
+      $replaceRoot: {
+        newRoot: "$stats",
       },
-      {
-        $replaceRoot: {
-          newRoot: "$stats",
-        },
-      },
-    ]);
-    res.status(200).json({
-      status: 1,
-      data: { response },
-      message: "Log count per log message on the basis of date.",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    },
+  ]);
+  res.status(200).json({
+    status: 1,
+    data: { response },
+    message: "Log count per log message on the basis of date.",
+  });
+});
+
+const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  if (!req.query.projectType) {
   }
-};
 
-const crashFreeUsersDatewise = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
-
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    const countResponse = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+  }
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  const countResponse = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
             },
-            { "log.type": { $ne: "error" } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      {
-        $group: {
-          _id: "$device.did",
-        },
-      },
-    ]);
-    const response = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
-            },
-            { "log.type": { $ne: "error" } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      {
-        $group: {
-          _id: {
-            DATE: { $substr: ["$log.date", 0, 10] },
-            did: "$device.did",
           },
-          data: { $sum: 1 },
-        },
+          { "log.type": { $ne: "error" } },
+          { type: req.query.projectType },
+        ],
       },
-      // // { $sort: { "DATE": -1 } },
-      {
-        $project: {
-          _id: 0,
-          date: "$_id.DATE",
-          did: "$_id.did",
-          data: 1,
-        },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
       },
-      {
-        $group: {
-          _id: null,
-          stats: { $push: "$$ROOT" },
-        },
+    },
+    {
+      $group: {
+        _id: "$device.did",
       },
-      {
-        $project: {
-          stats: {
-            $map: {
-              input: getDaysArray(
-                new Date(req.query.startDate),
-                new Date(req.query.endDate)
-              ),
-              as: "date_new",
-              in: {
-                $let: {
-                  vars: {
-                    dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
-                  },
-                  in: {
-                    $cond: {
-                      if: { $ne: ["$$dateIndex", -1] },
-                      then: {
-                        $arrayElemAt: ["$stats", "$$dateIndex"],
-                      },
-                      else: {
-                        date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
-                        did: null,
-                        data: 0,
-                      },
+    },
+  ]);
+  const response = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            },
+          },
+          { "log.type": { $ne: "error" } },
+          { type: req.query.projectType },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    {
+      $group: {
+        _id: {
+          DATE: { $substr: ["$log.date", 0, 10] },
+          did: "$device.did",
+        },
+        data: { $sum: 1 },
+      },
+    },
+    // // { $sort: { "DATE": -1 } },
+    {
+      $project: {
+        _id: 0,
+        date: "$_id.DATE",
+        did: "$_id.did",
+        data: 1,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        stats: { $push: "$$ROOT" },
+      },
+    },
+    {
+      $project: {
+        stats: {
+          $map: {
+            input: getDaysArray(
+              new Date(req.query.startDate),
+              new Date(req.query.endDate)
+            ),
+            as: "date_new",
+            in: {
+              $let: {
+                vars: {
+                  dateIndex: { $indexOfArray: ["$stats.date", "$$date_new"] },
+                },
+                in: {
+                  $cond: {
+                    if: { $ne: ["$$dateIndex", -1] },
+                    then: {
+                      $arrayElemAt: ["$stats", "$$dateIndex"],
+                    },
+                    else: {
+                      date: { $substr: [{ $toDate: "$$date_new" }, 0, 10] },
+                      did: null,
+                      data: 0,
                     },
                   },
                 },
@@ -1622,185 +1184,135 @@ const crashFreeUsersDatewise = async (req, res) => {
           },
         },
       },
-      {
-        $unwind: "$stats",
+    },
+    {
+      $unwind: "$stats",
+    },
+    {
+      $replaceRoot: {
+        newRoot: "$stats",
       },
-      {
-        $replaceRoot: {
-          newRoot: "$stats",
-        },
-      },
-    ]);
-    res.status(200).json({
-      status: 1,
-      data: { response, count: countResponse.length || 0 },
-      message: "Log count per log message on the basis of date.",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+    },
+  ]);
+  res.status(200).json({
+    status: 1,
+    data: { response, count: countResponse.length || 0 },
+    message: "Log count per log message on the basis of date.",
+  });
+});
+
+const crashlyticsData = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  if (!req.query.projectType) {
+    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
   }
-};
 
-const crashlyticsData = async (req, res) => {
-  try {
-    const { projectCode } = req.params;
+  var trimmedLogMsg;
+  if (req.query.logMsg.length > 26) {
+    trimmedLogMsg = req.query.logMsg.substring(0, 26);
+  } else trimmedLogMsg = req.query.logMsg;
 
-    if (!req.query.projectType) {
-      throw {
-        message: "project type is required",
-      };
-    }
-
-    var trimmedLogMsg;
-    if (req.query.logMsg.length > 26) {
-      trimmedLogMsg = req.query.logMsg.substring(0, 26);
-    } else trimmedLogMsg = req.query.logMsg;
-
-    if (!projectCode) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-    const projectCollection = await Projects.findOne({ code: projectCode });
-    if (!projectCollection) {
-      return res.status(404).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found.",
-            msg: "Project not found.",
-            type: "MongoDBError",
-          },
-        },
-      });
-    }
-    console.log(projectCollection);
-    const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    const versionResponse = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
-            },
-            { "log.message": { $regex: trimmedLogMsg } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $group: {
-          _id: "$version",
-          data: { $sum: 1 },
-        },
-      },
-    ]);
-    const osArchitectureResponse = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
-            },
-            { "log.message": { $regex: trimmedLogMsg } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      {
-        $group: {
-          _id: "$device.os.name",
-          data: { $sum: 1 },
-        },
-      },
-    ]);
-    const modelNameResponse = await collectionName.aggregate([
-      {
-        $match: {
-          $and: [
-            // {$unwind : '$log'},
-            {
-              "log.date": {
-                $gte: new Date(req.query.startDate),
-                $lte: new Date(req.query.endDate),
-              },
-            },
-            { "log.message": { $regex: trimmedLogMsg } },
-            { type: req.query.projectType },
-          ],
-        },
-      },
-      {
-        $lookup: {
-          from: "devices",
-          localField: "device",
-          foreignField: "_id",
-          as: "device",
-        },
-      },
-      {
-        $group: {
-          _id: "$device.name",
-          data: { $sum: 1 },
-        },
-      },
-    ]);
-    res.status(200).json({
-      status: 1,
-      data: { versionResponse, osArchitectureResponse, modelNameResponse },
-      message: "Crashlytics data on the basis of date.",
-    });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({
-      status: 0,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: error.name,
-          msg: error.message,
-          type: "InternalServerError",
-        },
-      },
-    });
+  if (!projectCode) {
+    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
   }
-};
+  const projectCollection = await Projects.findOne({ code: projectCode });
+  if (!projectCollection) {
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+  }
+  console.log(projectCollection);
+  const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+  const versionResponse = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            },
+          },
+          { "log.message": { $regex: trimmedLogMsg } },
+          { type: req.query.projectType },
+        ],
+      },
+    },
+    {
+      $group: {
+        _id: "$version",
+        data: { $sum: 1 },
+      },
+    },
+  ]);
+  const osArchitectureResponse = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            },
+          },
+          { "log.message": { $regex: trimmedLogMsg } },
+          { type: req.query.projectType },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    {
+      $group: {
+        _id: "$device.os.name",
+        data: { $sum: 1 },
+      },
+    },
+  ]);
+  const modelNameResponse = await collectionName.aggregate([
+    {
+      $match: {
+        $and: [
+          // {$unwind : '$log'},
+          {
+            "log.date": {
+              $gte: new Date(req.query.startDate),
+              $lte: new Date(req.query.endDate),
+            },
+          },
+          { "log.message": { $regex: trimmedLogMsg } },
+          { type: req.query.projectType },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    {
+      $group: {
+        _id: "$device.name",
+        data: { $sum: 1 },
+      },
+    },
+  ]);
+  res.status(200).json({
+    status: 1,
+    data: { versionResponse, osArchitectureResponse, modelNameResponse },
+    message: "Crashlytics data on the basis of date.",
+  });
+});
 
 module.exports = {
   createNewProject,
