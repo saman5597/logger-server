@@ -21,6 +21,11 @@ const projectSchema = mongoose.Schema({
         unique:true,
         required: [true, 'Collection name is required.']
     },
+    reportEmail: {
+        type: [Object],
+        unique:true,
+        required: [true, 'Collection name is required.']
+    },
     status: {
         type: Boolean,
         default: true

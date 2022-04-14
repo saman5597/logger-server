@@ -16,7 +16,7 @@ const logsSchema = mongoose.Schema(
     },
     type: {
       type: String,
-      default: "info",
+      default: "verbose",
       enum: ["warn", "info", "error", "debug","verbose"],
     },
   },
