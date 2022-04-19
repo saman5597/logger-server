@@ -1,11 +1,9 @@
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const Projects = require("../model/project");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
 const ValidateHelper = require("../helper/validatorMiddleware");
 const fs = require("fs");
-dotenv.config();
 
 // Unique number
 const {

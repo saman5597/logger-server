@@ -1,5 +1,4 @@
 const User = require("../model/users");
-const dotenv = require("dotenv");
 
 const redis = require("redis");
 const url = require("url");
@@ -16,7 +15,6 @@ if (process.env.REDISCLOUD_URL) {
 }
 const JWTR = require("jwt-redis").default;
 const jwtr = new JWTR(redisClient);
-dotenv.config();
 
 const authUser = async (req, res, next) => {
   try {

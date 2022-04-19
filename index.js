@@ -1,6 +1,5 @@
 const express = require("express");
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const cors = require("cors");
 const upload = require("express-fileupload");
 const bodyParser = require("body-parser");
@@ -8,8 +7,8 @@ const connectDB = require("./config/db.js");
 const morgan = require("morgan");
 const globalErrorHandler = require("./controller/errorController");
 const AppError = require("./utils/appError.js");
+require("dotenv").config({ path: './.env' });
 
-dotenv.config();
 
 // importing router
 const users = require("./route/users.js");

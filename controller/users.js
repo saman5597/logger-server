@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 const morgan = require("morgan");
 const fs = require("fs");
@@ -20,7 +19,6 @@ const { validationResult } = require("express-validator");
 const { response } = require("express");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
-dotenv.config();
 
 let redisClient;
 if (process.env.REDISCLOUD_URL) {

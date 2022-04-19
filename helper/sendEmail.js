@@ -1,7 +1,6 @@
 const { json } = require('body-parser');
 const nodemailer = require('nodemailer');
-const dotenv = require('dotenv')
-dotenv.config();
+
 
 var transport = nodemailer.createTransport({
     host: "smtp.gmail.com", //"smtp.mailtrap.io",
