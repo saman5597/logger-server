@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start:dev": "nodemon index.js",
-    "start" : "NODE_ENV=production nodemon index.js",
+    "start": "NODE_ENV=production nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "DnD Technologies",
@@ -23,7 +23,6 @@
     "morgan": "^1.10.0",
     "nodemailer": "^6.7.2",
     "nodemon": "^2.0.12",
-    "otp-generator": "^4.0.0",
     "redis": "^3.1.2"
   }
 }
