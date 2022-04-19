@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const otpGenerator = require('otp-generator');
+// const otpGenerator = require('otp-generator');
 
 const makeid = (length) => {
     var result           = '';
@@ -49,7 +49,8 @@ const checkMD5 = (md5Hash)=>{
 
 
 const createOtp = (length,specialChars)=>{
-    const otp = otpGenerator.generate(length,{specialChars: specialChars});
+    // const otp = otpGenerator.generate(length,{specialChars: specialChars});
+    const otp = makeid(length)
     return otp;
 }
 
