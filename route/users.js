@@ -18,22 +18,22 @@ const {
 } = require('../middleware/authenticate')
 
 const middlewares = [check('email').isEmail().normalizeEmail(), check('password').trim().isLength(5)]
+
+// AUTH Route
 // Unprotected
-router.post('/login', loginUser)
-router.post('/register',registerUser)
-
-// router.get('/login',(req,res)=>res.send("req receive successfully!!!"))
-
-router.post("/forget", userForgetPassword);
+router.post('/auth/login', loginUser)
+router.post('/auth/register',registerUser)
+router.post("/auth/forget", userForgetPassword);
 
 // Token access
-router.post("/resetPassword", resetForgetPassword);
+router.post("/auth/resetPassword", resetForgetPassword);
 
 // Protected
+router.get('/auth/logout',authUser,logoutUser)
 
-router.get('/logout',authUser,logoutUser)
-router.put('/update',authUser,updateUserProfile)
-router.put("/changepassword", authUser, userPasswordChagne);
-
+// USERS Route
+// Protected Route
+router.put('/users/update',authUser,updateUserProfile)
+router.put("/users/changepassword", authUser, userPasswordChagne);
 
 module.exports = router;
