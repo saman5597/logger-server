@@ -512,31 +512,34 @@ const getProjectLogs = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
   const isProjectExist = await Projects.findOne({ code: projectCode });
   if (!isProjectExist) {
-    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code invalid`, 400); // NJ-changes 13 Apr
   }
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
   }
 
   if (!req.query.startDate || !req.query.endDate) {
-    throw new AppError(`Provide start date and end date.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Provide start date and end date.`, 400); // NJ-changes 13 Apr
   }
 
-  // console.log("req query",req.params)
 
   if (!req.params.projectCode) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
   }
 
   const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
+
+  let dt = new Date(req.query.endDate)
+  dt.setDate(dt.getDate() + 1)
+
+
   const typeWiseCount = await collectionName.aggregate([
-    // {$unwind : '$log'},
     {
       $match: {
         "log.date": {
           $gte: new Date(req.query.startDate),
-          $lte: new Date(req.query.endDate),
+          $lte: dt,
         },
         type: req.query.projectType,
       },
@@ -545,12 +548,11 @@ const getProjectLogs = catchAsync(async (req, res, next) => {
     { $project: { logType: "$_id", count: 1, _id: 0 } },
   ]);
   const totalLogCount = await collectionName.aggregate([
-    // {$unwind : '$log'},
     {
       $match: {
         "log.date": {
           $gte: new Date(req.query.startDate),
-          $lte: new Date(req.query.endDate),
+          $lte: dt,
         },
         type: req.query.projectType,
       },
