@@ -1077,15 +1077,18 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
     throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
   }
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+
+  let dt = new Date(req.query.endDate)
+  dt.setDate(dt.getDate() + 1)
+
   const countResponse = await collectionName.aggregate([
     {
       $match: {
         $and: [
-          // {$unwind : '$log'},
           {
             "log.date": {
               $gte: new Date(req.query.startDate),
-              $lte: new Date(req.query.endDate),
+              $lte: dt,
             },
           },
           { "log.type": { $ne: "error" } },
@@ -1111,11 +1114,10 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
     {
       $match: {
         $and: [
-          // {$unwind : '$log'},
           {
             "log.date": {
               $gte: new Date(req.query.startDate),
-              $lte: new Date(req.query.endDate),
+              $lte: dt,
             },
           },
           { "log.type": { $ne: "error" } },
@@ -1161,7 +1163,7 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
           $map: {
             input: getDaysArray(
               new Date(req.query.startDate),
-              new Date(req.query.endDate)
+              dt
             ),
             as: "date_new",
             in: {
@@ -1200,7 +1202,7 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
   res.status(200).json({
     status: 1,
     data: { response, count: countResponse.length || 0 },
-    message: "Log count per log message on the basis of date.",
+    message: "Crash free users on the basis of date.",
   });
 });
 
