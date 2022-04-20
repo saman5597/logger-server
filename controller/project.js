@@ -691,7 +691,7 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
   }
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
-    throw new AppError(`Project not found.`, 400); // NJ-changes 13 Apr
+    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
   }
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
 
@@ -1070,7 +1070,7 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
   }
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
