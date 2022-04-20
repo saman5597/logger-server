@@ -683,30 +683,34 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
   }
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
-    throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project not found.`, 400); // NJ-changes 13 Apr
   }
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
+
+  let dt = new Date(req.query.endDate)
+  dt.setDate(dt.getDate() + 1)
+
+
   const countResponse = await collectionName.aggregate([
-    // {$unwind : '$log'},
     {
       $match: {
         $and: [
           {
             "log.date": {
               $gte: new Date(req.query.startDate),
-              $lte: new Date(req.query.endDate),
+              $lte: dt,
             },
           },
           { type: req.query.projectType },
-          // {logType: {"$ne": "error"}}
+          { "log.type": "error" }
         ],
       },
     },
@@ -725,12 +729,11 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
     },
   ]);
   const response = await collectionName.aggregate([
-    // {$unwind : '$log'},
     {
       $match: {
         "log.date": {
           $gte: new Date(req.query.startDate),
-          $lte: new Date(req.query.endDate),
+          $lte: dt,
         },
         "log.type": "error",
         type: req.query.projectType,
@@ -764,7 +767,7 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
           $map: {
             input: getDaysArray(
               new Date(req.query.startDate),
-              new Date(req.query.endDate)
+              dt
             ),
             as: "date_new",
             in: {
