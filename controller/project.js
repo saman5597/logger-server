@@ -406,7 +406,7 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
   if (log.type == "error") {
     findProjectWithCode.reportEmail.map((email) => {
       // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
-      sendCrashEmail({ msg: log.msg, to: email, from: "logcat@gmail.com" });
+      sendCrashEmail({ msg: log.msg, to: email });
     });
   }
 

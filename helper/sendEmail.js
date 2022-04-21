@@ -51,7 +51,6 @@ console.log(`${msg} ${to} ${from}`)
 
         transport.sendMail(mail, (error,info)=>{
             if(error) console.log(`Mail fail ${error}`);
-            console.log(`Crash Mail send ${[...info]}`);
             return false
         })
         next();
