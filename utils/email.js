@@ -7,7 +7,7 @@ module.exports = class Email {
     this.to = user;
     this.firstName = user.split("@")[0];
     this.url = url;
-    this.from = `D&D Technology <${process.env.MAIL_FROM}>`;
+    this.from = `LogCat Support <${process.env.MAIL_FROM}>`;
 
     // console.log("first", user, url);
   }
@@ -56,6 +56,16 @@ module.exports = class Email {
   }
 
   async sendWelcome() {
-    await this.send("welcome", "Welcome to the Natours Family!");
+    await this.send("welcome", "Welcome to LogCat!");
   }
+
+  async sendCrash() {
+    await this.send("crash", "Crash Notification: LogCat")
+  }
+
+  async forgetPassword() {
+    await this.send("forgetPassword", "Password Reset OTP: LogCat")
+  }
+
+
 };
