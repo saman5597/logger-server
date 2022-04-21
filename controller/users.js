@@ -242,9 +242,13 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   }
 
   // send email -> inside helper folder
-  sendEmail({ otp, to: email, msg: `Hello ${user.name}` });
-
+  const emailRes = await sendEmail({ otp, to: email, msg: `Hello ${user.name}` })
+  console.log(emailRes)
+  if(!emailRes){
+    throw new AppError(`Unable to send email, try again`, 408);
+  }
   return res.status(200).json({ success: true, message: `Email send to you!` });
+
 });
 
 /**
