@@ -19,6 +19,7 @@ const { validationResult } = require("express-validator");
 const { response } = require("express");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const Email = require("../utils/email");
 
 let redisClient;
 if (process.env.REDISCLOUD_URL) {
@@ -57,17 +58,22 @@ const registerUser = catchAsync(async (req, res, next) => {
     const savedUser = await user.save(user);
 
     if (savedUser) {
+      const url = `${req.protocol}://${req.get('host')}/welcome`;
+      new Email(email, url).sendWelcome()
+
       res.status(201).json({
         status: 1,
         data: { name: savedUser.name, avatar: savedUser.image },
         message: "Registration successfull!",
       });
     } else {
-      throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
+      throw new AppError(`Some error happe  ned during registration`, 400); // NJ-changes 13 Apr
     }
   } else {
     throw new AppError(`Invalid email address.`, 404); // NJ-changes 13 Apr
   }
+
+  
   // } catch (error) {
   //   if (error.code === 11000) {
   //     throw new AppError(
@@ -131,6 +137,11 @@ const loginUser = catchAsync(async (req, res, next) => {
   const token = await jwtr.sign(id, process.env.JWT_SECRET, {
     expiresIn: "15d",
   });
+
+  // const url = `${req.protocol}://${req.get("host")}/me`;
+
+  // console.log(email, url);
+  // await new Email(email, url).sendWelcome();
 
   // Assign token to http cookies
   return res.status(200).json({
@@ -242,18 +253,27 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   }
 
   // send email -> inside helper folder
-  const emailRes = await sendEmail({ otp, to: email, msg: `Hello ${user.name}` })
-  console.log(emailRes)
-  if(!emailRes){
-    throw new AppError(`Unable to send email, try again`, 408);
-  }
-  return res.status(200).json({ success: true, message: `Email send to you!` });
+  // const emailRes = await sendEmail({
+  //   otp,
+  //   to: email,
+  //   msg: `Hello ${user.name}`,
+  // });
+  // console.log(email);
+  // if (!emailRes) {
+  //   throw new AppError(`Unable to send email, try again`, 408);
+  // }
 
+  const url = `${otp}`;
+  console.log("userpassword", email, url)
+
+  new Email(email, url).forgetPassword()
+
+  return res.status(200).json({ success: true, message: `Email send to you!` });
 });
 
 /**
  * @desc        Reset password
- * @Endpoint    Post @/api/users/resetPassword
+ * @Endpoint    Post @/api/users/resetPasemailsword
  * @access      Token access
  */
 const resetForgetPassword = catchAsync(async (req, res, next) => {
@@ -292,6 +312,8 @@ const resetForgetPassword = catchAsync(async (req, res, next) => {
     ); // NJ-changes 13 Apr
   }
 
+
+
   if (user.email === fp.email) {
     // update password of user
     const salt = await bcrypt.genSalt();
@@ -301,6 +323,9 @@ const resetForgetPassword = catchAsync(async (req, res, next) => {
 
     // delete the document from forget password using email
     await ForgetPassword.deleteMany({ user: user._id });
+
+    // SENDING FORGET MAIL USER
+
 
     // delete cookie email and other token
     return (

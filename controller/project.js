@@ -16,6 +16,7 @@ const project = require("../model/project");
 const { sendCrashEmail } = require("../helper/sendEmail");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const Email = require("../utils/email");
 // const { type } = require("express/lib/response");
 
 /**
@@ -406,7 +407,10 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
   if (log.type == "error") {
     findProjectWithCode.reportEmail.map((email) => {
       // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
-      sendCrashEmail({ msg: log.msg, to: email });
+      // sendCrashEmail({ msg: log.msg, to: email });
+      const url = `${log.msg}`;
+      console.log(url)
+      new Email(email, url).sendCrash()
     });
   }
 

@@ -8,7 +8,7 @@ const userSchema = mongoose.Schema({
     },
     isSuperAdmin:{
         type:Boolean,
-        default: true
+        default: false
     },
     image:{
         type:String,
