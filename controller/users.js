@@ -19,6 +19,7 @@ const { validationResult } = require("express-validator");
 const { response } = require("express");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
+const Email = require("../utils/email");
 
 let redisClient;
 if (process.env.REDISCLOUD_URL) {
@@ -132,6 +133,11 @@ const loginUser = catchAsync(async (req, res, next) => {
     expiresIn: "15d",
   });
 
+  const url = `${req.protocol}://${req.get("host")}/me`;
+
+  console.log(email, url);
+  await new Email(email, url).sendWelcome();
+
   // Assign token to http cookies
   return res.status(200).json({
     status: 1,
@@ -242,13 +248,16 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   }
 
   // send email -> inside helper folder
-  const emailRes = await sendEmail({ otp, to: email, msg: `Hello ${user.name}` })
-  console.log(emailRes)
-  if(!emailRes){
+  const emailRes = await sendEmail({
+    otp,
+    to: email,
+    msg: `Hello ${user.name}`,
+  });
+  console.log(emailRes);
+  if (!emailRes) {
     throw new AppError(`Unable to send email, try again`, 408);
   }
   return res.status(200).json({ success: true, message: `Email send to you!` });
-
 });
 
 /**
