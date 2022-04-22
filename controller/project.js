@@ -62,19 +62,95 @@ const createNewProject = catchAsync(async (req, res, next) => {
 
   const collection_name =
     removeAllSpecialChars(name).toLowerCase() + "_collection";
+
+   const alert_collection_name ='alert_'+
+    removeAllSpecialChars(name).toLowerCase() + "_collection";
+
   const project = await new Projects({
     name,
     description,
     code: makeid(5),
     device_types: arrayOfObjects,
     collection_name,
+    alert_collection_name,
   });
   const savedProject = await project.save(project);
   if (!savedProject) {
     throw new AppError(`Project not created!!`, 400); // NJ-changes 13 Apr
   }
+    const alertSchemaBlueprint = `
+    const mongoose = require('mongoose');
+    
+        const schemaOptions = {
+            timestamps: true,
+            toJSON: {
+                virtuals: false
+            },
+            toObject: {
+                virtuals: false
+            }
+        }
+        
+        const ${alert_collection_name}Schema = new mongoose.Schema(
+            {
+              did:  {
+                type: String,
+                required: [true, "Device id is required."],
+                validate: {
+                    validator: function (v) {
+                    return /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})|([0-9a-fA-F]{4}\\.[0-9a-fA-F]{4}\\.[0-9a-fA-F]{4})$/.test(
+                        v
+                    );
+                    },
+                    message: "{VALUE} is not a valid device id.",
+                },
+            },
+                type: {
+                  type: String,
+                  enum: [${typeCodeArray}],
+                  required: [true, "Atleast one model required."]
+                },
+                ack:[
+                  {
+                    msg: String,
+                    code: {
+                      type: String,
+                      required: [true, 'Code is required']
+                    },
+                    timestamp: {
+                      type: Date,
+                      required: [true, 'Date time is required']
+                    }
+                  }
+                ]
+            },
+            schemaOptions
+        )
 
-  // dynamic schema
+        ${alert_collection_name}Schema.index({'type': 1})
+                
+        const ${alert_collection_name} = mongoose.model('${alert_collection_name}', ${alert_collection_name}Schema)
+        
+        module.exports = ${alert_collection_name}
+        `;
+
+        fs.writeFile(
+          `${__dirname.concat(`/../model/${alert_collection_name}.js`)}`,
+          alertSchemaBlueprint,
+          {
+            encoding: "utf8",
+            flag: "w",
+            mode: 0o666,
+          },
+          (err) => {
+            if (err) {
+              throw new AppError(`Some error occured during project creation`, 403); // NJ-changes 13 Apr
+            }
+            // console.log("File written successfully");
+          }
+        );
+
+  // dynamic schema for logs
 
   const schemaBlueprint = `
     const mongoose = require('mongoose');
@@ -410,6 +486,53 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
       console.log(url)
       new Email(email, url).sendCrash()
     });
+  }
+
+  res.status(201).json({
+    status: 1,
+    data: {},
+    message: "Successful",
+  });
+});
+
+/**
+ * desc     Alert 
+ * api      POST @/api/logger/logs/alerts/:projectCode 
+ */
+const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
+  const { project_code } = req.params;
+  // check project exist or not
+  const findProjectWithCode = await Projects.findOne({ code: project_code });
+
+  if (!findProjectWithCode) {
+    throw new AppError(`Project does not exist`, 404);
+  }
+  const collectionName = findProjectWithCode.alert_collection_name;
+  console.log(require(`../model/${collectionName}`));
+  const modelReference = require(`../model/${collectionName}`);
+
+  const {
+    did,
+    type,
+    ack,
+  } = req.body;
+
+  let arrayOfObjects=[]
+  for (let i = 0; i < ack.length; i++) {
+    arrayOfObjects.push(ack[i]);
+  }
+
+  //  above details will be put in project tables
+
+  const putDataIntoLoggerDb = await new modelReference({
+    did:did,
+    ack:arrayOfObjects,
+    type:type,
+  });
+
+  const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+  if (!isLoggerSaved) {
+    throw new AppError(`Alert entry failed!`, 401);
   }
 
   res.status(201).json({
@@ -1312,6 +1435,7 @@ module.exports = {
   createNewProject,
   getAllRegisterProject,
   makeEntriesInDeviceLogger,
+  makeEntriesInAlertLogger,
   getProjectWithProjectCode,
   updateProjectWithProjectCode,
   addEmailWithProjectCode,

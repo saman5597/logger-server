@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router();
 const {
     makeEntriesInDeviceLogger,
+    makeEntriesInAlertLogger,
     getProjectLogs,
     dateWiseLogCount,
     logOccurrences,
@@ -20,6 +21,7 @@ const { authDevice } = require('../middleware/validate');
 
 // Unprotected
 router.post('/:project_code',makeEntriesInDeviceLogger)
+router.post('/alerts/:project_code',makeEntriesInAlertLogger)
 
 //Protected Route
 router.get('/:projectCode',authUser,getProjectWithFilter)
