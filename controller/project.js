@@ -623,31 +623,31 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
 
   const collectionName = require(`../model/${isProjectExist.alert_collection_name}.js`);
 
-  let logs;
+  let alerts;
 
   // const totalCount = await collectionName.estimatedDocumentCount({})
   const countObjQuery = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
-  ).filter();
+  ).alert_filter();
   const countObj = await countObjQuery.query;
 
   const features = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
   )
-    .filter()
+    .alert_filter()
     .sort()
     .paginate();
 
-  logs = await features.query;
+  alerts = await features.query;
 
   // Sending type name instead of type code
 
   return res.status(200).json({
     status: 1,
     message: "Successfull ",
-    data: { count: countObj.length, pageLimit: logs.length, logs: logs },
+    data: { count: countObj.length, alerts: alerts },
   });
 });
 
