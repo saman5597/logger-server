@@ -13,6 +13,7 @@ const {
     crashlyticsData,
     crashFreeUsersDatewise,
     getProjectWithFilter, 
+    getAlertsWithFilter,
     getErrorCountByVersion   
 } = require('../controller/project');
 
@@ -25,6 +26,7 @@ router.post('/alerts/:project_code',makeEntriesInAlertLogger)
 
 //Protected Route
 router.get('/:projectCode',authUser,getProjectWithFilter)
+router.get('/alerts/:projectCode',getAlertsWithFilter)
 router.get('/crashfree-users-datewise/:projectCode', authUser, crashFreeUsersDatewise)
 router.get('/get-crashlytics-data/:projectCode', authUser, crashlyticsData)
 router.get('/getErrorCountByOSArchitecture/:projectCode',authUser,getErrorCountByOSArchitecture)
