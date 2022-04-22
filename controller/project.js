@@ -13,11 +13,9 @@ const {
   getDaysArray,
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
-const { sendCrashEmail } = require("../helper/sendEmail");
 const AppError = require("../utils/appError");
 const catchAsync = require("../utils/catchAsync");
 const Email = require("../utils/email");
-// const { type } = require("express/lib/response");
 
 /**
  *
@@ -47,7 +45,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
   const typeCodeArray = [];
 
   if (device_type.length === 0) {
-    throw new AppError(`Please provide atleast one device name!`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Please provide atleast one device name!`, 400); // NJ-changes 13 Apr
   }
 
   //  loop and set the typecode and enum code
@@ -59,7 +57,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
   const isCollectionExist = await checkCollectionName(name + "_collection");
 
   if (isCollectionExist) {
-    throw new AppError(`Project with provided name already exist!!`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project with provided name already exist!!`, 409); // NJ-changes 13 Apr
   }
 
   const collection_name =
@@ -73,7 +71,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
   });
   const savedProject = await project.save(project);
   if (!savedProject) {
-    throw new AppError(`Project not created!!`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Project not created!!`, 400); // NJ-changes 13 Apr
   }
 
   // dynamic schema
@@ -127,7 +125,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
     },
     (err) => {
       if (err) {
-        throw new AppError(`Some error occured during project creation`, 403); // NJ-changes 13 Apr
+        throw new AppError(`Some error occured during project creation`, 500); // NJ-changes 13 Apr
       }
       // console.log("File written successfully");
     }
@@ -150,7 +148,7 @@ const getProjectWithProjectCode = catchAsync(async (req, res, next) => {
   // if not enter projectCode
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
 
   const getProject = await Projects.findOne({ code: projectCode });
@@ -182,7 +180,7 @@ const updateProjectWithProjectCode = catchAsync(async (req, res, next) => {
   });
 
   if (!getProjectWithProjectCode) {
-    throw new AppError(`We don't have any project with this code!!.`, 401); // NJ-changes 13 Apr
+    throw new AppError(`We don't have any project with this code!!.`, 404); // NJ-changes 13 Apr
   }
   // if (!device_type) {
   // }
@@ -264,7 +262,7 @@ const updateProjectWithProjectCode = catchAsync(async (req, res, next) => {
         if (err) {
           throw new AppError(
             `Some error occured during project updation.`,
-            401
+            400
           ); // NJ-changes 13 Apr
         }
 
@@ -283,7 +281,7 @@ const updateProjectWithProjectCode = catchAsync(async (req, res, next) => {
   const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
   if (!isGetProjectWithProjectCodeSaved) {
-    throw new AppError(`Some error occured during updating the project!!`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Some error occured during updating the project!!`, 500); // NJ-changes 13 Apr
   }
 
   res.status(200).json({
@@ -298,13 +296,13 @@ const addEmailWithProjectCode = catchAsync(async (req, res, next) => {
   console.log(req.body);
   const { email } = req.body;
   if (!email) {
-    throw new AppError(`No email available.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`No email available.`, 400); // NJ-changes 13 Apr
   }
 
   let emailError = [];
   email.map((em) => {
     if (!ValidateHelper.ValidateEmail(em)) {
-      throw new AppError(`Check entered emails.`, 404); // NJ-changes 13 Apr
+      throw new AppError(`Check entered emails.`, 400); // NJ-changes 13 Apr
     }
     if (!emailError.includes(em)) {
       emailError.push(em);
@@ -316,7 +314,7 @@ const addEmailWithProjectCode = catchAsync(async (req, res, next) => {
   });
 
   if (!getProjectWithProjectCode) {
-    throw new AppError(`Project does not exist.`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Project does not exist.`, 404); // NJ-changes 13 Apr
   }
 
   getProjectWithProjectCode.reportEmail = [...emailError];
@@ -324,7 +322,7 @@ const addEmailWithProjectCode = catchAsync(async (req, res, next) => {
   const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
   if (!isGetProjectWithProjectCodeSaved) {
-    throw new AppError(`Some error occured during updating the project!!`, 400); // NJ-changes 13 Apr
+    throw new AppError(`Some error occured during updating the project!!`, 500); // NJ-changes 13 Apr
   }
 
   const emailList = await Projects.findOne(
@@ -381,7 +379,7 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
   const isDeviceSaved = await Dvc.save(Dvc);
 
   if (!isDeviceSaved) {
-    throw new AppError(`Device save operation failed!`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Device save operation failed!`, 500); // NJ-changes 13 Apr
   }
 
   const putDataIntoLoggerDb = await new modelReference({
@@ -400,7 +398,7 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
   // console.log("isLoggerSaved", isLoggerSaved);
   // console.log(putDataIntoLoggerDb);
   if (!isLoggerSaved) {
-    throw new AppError(`Logger entry failed!`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Logger entry failed!`, 500); // NJ-changes 13 Apr
   }
 
   // console.log(log.message)
@@ -475,7 +473,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
     });
   });
 
-  return res.json({
+  return res.status(200).json({
     status: 1,
     message: "Successfull ",
     data: { count: countObj.length, pageLimit: logs.length, logs: logs },
@@ -516,7 +514,7 @@ const getProjectLogs = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
   const isProjectExist = await Projects.findOne({ code: projectCode });
   if (!isProjectExist) {
-    throw new AppError(`Project code invalid`, 400); // NJ-changes 13 Apr
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
   }
 
   if (!req.query.projectType) {
@@ -581,7 +579,7 @@ const getErrorCountByVersion = catchAsync(async (req, res, next) => {
   const isProjectExist = await Projects.findOne({ code: projectCode });
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`project type is required`, 400); // NJ-changes 13 Apr
   }
 
   if (!isProjectExist) {
@@ -593,15 +591,6 @@ const getErrorCountByVersion = catchAsync(async (req, res, next) => {
     { $match: { "log.type": "error", type: req.query.projectType } },
     { $group: { _id: "$version", count: { $sum: 1 } } },
   ]);
-
-  // const typeWiseCount = await collectionName.aggregate([
-  //   {
-  //     $unwind: '$log'
-  //   },
-  //     { $match: { 'log.type':"info" } },
-  //     { $group: { _id: "$version", count: { $sum: 1 } } },
-  //   ]);
-  // console.log(typeWiseCount);
 
   return res.status(200).json({
     status: 1,
@@ -617,7 +606,7 @@ const getErrorCountByOSArchitecture = catchAsync(async (req, res, next) => {
   const isProjectExist = await Projects.findOne({ code: projectCode });
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`project type is required`, 400); // NJ-changes 13 Apr
   }
 
   if (!isProjectExist) {
@@ -816,7 +805,7 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
 const getLogsCountWithOs = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
 
   const projectCollection = await Projects.findOne({ code: projectCode });
@@ -825,10 +814,6 @@ const getLogsCountWithOs = catchAsync(async (req, res, next) => {
   }
 
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-  // if (!collectionName)
-  //   throw {
-  //     message: "Project Not Found ",
-  //   };
 
   const osTotalCount = await collectionName.countDocuments();
   const osParticularCount = await collectionName.aggregate([
@@ -858,7 +843,7 @@ const getLogsCountWithOs = catchAsync(async (req, res, next) => {
 const getLogsCountWithModelName = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
 
   const projectCollection = await Projects.findOne({ code: projectCode });
@@ -899,16 +884,16 @@ const getlogMsgOccurence = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`project type is required`, 400); // NJ-changes 13 Apr
   }
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
 
   // const { msg } = req.query;
   if (!req.query.msg) {
-    throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Log message not provided.`, 400); // NJ-changes 13 Apr
   }
 
   var trimmedLogMsg;
@@ -958,11 +943,11 @@ const logOccurrences = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`project type is required.`, 400); // NJ-changes 13 Apr
   }
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
@@ -970,7 +955,7 @@ const logOccurrences = catchAsync(async (req, res, next) => {
   }
 
   if (!req.query.logMsg) {
-    throw new AppError(`Log message not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Log message not provided.`, 400); // NJ-changes 13 Apr
   }
 
   var trimmedLogMsg;
@@ -1214,7 +1199,7 @@ const crashlyticsData = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
 
   if (!req.query.projectType) {
-    throw new AppError(`project type is required`, 404); // NJ-changes 13 Apr
+    throw new AppError(`project type is required`, 400); // NJ-changes 13 Apr
   }
 
   var trimmedLogMsg;
@@ -1223,7 +1208,7 @@ const crashlyticsData = catchAsync(async (req, res, next) => {
   } else trimmedLogMsg = req.query.logMsg;
 
   if (!projectCode) {
-    throw new AppError(`Project code not provided.`, 404); // NJ-changes 13 Apr
+    throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
