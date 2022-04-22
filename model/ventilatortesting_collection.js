@@ -20,9 +20,9 @@
                     required: [true, 'Log version is required.']
                 },
                 type: {
-                  type: String,
-                  enum: ["001","002"],
-                  required: [true, "Atleast one model required."]
+                    type: String,
+                    enum: ["001","002"],
+                    required: [true, "Atleast one model required."]
                 },
                 device:{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' },
                 log:logs
