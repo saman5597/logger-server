@@ -588,13 +588,61 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   logs = await features.query;
 
   // Sending type name instead of type code
-  isProjectExist.device_types.map((device) => {
-    logs.map((obj) => {
-      if (device.typeCode === obj.device_types) {
-        obj.device_types = `${obj.device_types}|${device.typeName}`;
-      }
-    });
+  // isProjectExist.device_types.map((device) => {
+  //   logs.map((obj) => {
+  //     if (device.typeCode === obj.device_types) {
+  //       obj.device_types = `${obj.device_types}|${device.typeName}`;
+  //     }
+  //   });
+  // });
+
+  return res.status(200).json({
+    status: 1,
+    message: "Successfull ",
+    data: { count: countObj.length, pageLimit: logs.length, logs: logs },
   });
+});
+
+/**
+ * desc     get project with filter
+ * api      @/api/logger/projects/getDetails/:projectCode
+ *
+ */
+
+ const getAlertsWithFilter = catchAsync(async (req, res, next) => {
+  const { projectCode } = req.params;
+
+  if (!req.query.projectType) {
+    throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
+  }
+
+  const isProjectExist = await Projects.findOne({ code: projectCode });
+  if (!isProjectExist) {
+    throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+  }
+
+  const collectionName = require(`../model/${isProjectExist.alert_collection_name}.js`);
+
+  let logs;
+
+  // const totalCount = await collectionName.estimatedDocumentCount({})
+  const countObjQuery = new QueryHelper(
+    collectionName.find({ type: req.query.projectType }),
+    req.query
+  ).filter();
+  const countObj = await countObjQuery.query;
+
+  const features = new QueryHelper(
+    collectionName.find({ type: req.query.projectType }),
+    req.query
+  )
+    .filter()
+    .sort()
+    .paginate();
+
+  logs = await features.query;
+
+  // Sending type name instead of type code
 
   return res.status(200).json({
     status: 1,
@@ -1014,7 +1062,6 @@ const getlogMsgOccurence = catchAsync(async (req, res, next) => {
     throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
   }
 
-  // const { msg } = req.query;
   if (!req.query.msg) {
     throw new AppError(`Log message not provided.`, 400); // NJ-changes 13 Apr
   }
@@ -1440,6 +1487,7 @@ module.exports = {
   updateProjectWithProjectCode,
   addEmailWithProjectCode,
   getProjectWithFilter,
+  getAlertsWithFilter,
   getdeviceIdProjectWise,
   getProjectLogs,
   getErrorCountByVersion,
