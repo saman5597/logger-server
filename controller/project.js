@@ -532,7 +532,7 @@ const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
 
   const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
   if (!isLoggerSaved) {
-    throw new AppError(`Alert entry failed!`, 401);
+    throw new AppError(`Alert entry failed!`, 500);
   }
 
   res.status(201).json({
@@ -630,6 +630,18 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   ).filter();
   const countObj = await countObjQuery.query;
 
+  const alertsArray = []
+  countObj.map(al => {
+    al.ack.map( ack => {
+      alertsArray.push({
+        did: al.did,
+        code : ack.code,
+        msg: ack.msg,
+        timestamp: ack.timestamp
+      })
+    })
+  });
+
   const features = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
@@ -640,12 +652,26 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
 
   alerts = await features.query;
 
+  const alertsArr = []
+  alerts.map(al => {
+    al.ack.map( ack => {
+      alertsArr.push({
+        did: al.did,
+        code : ack.code,
+        msg: ack.msg,
+        timestamp: ack.timestamp
+      })
+    })
+  });
+
+  console.log(alertsArr)
+
   // Sending type name instead of type code
 
   return res.status(200).json({
     status: 1,
-    message: "Successfull ",
-    data: { count: countObj.length, alerts: alerts, pageLimit: alerts.length },
+    message: "Successfull",
+    data: { count: alertsArray.length, pageLimit: alertsArr.length, alerts: alertsArr },
   });
 });
 
