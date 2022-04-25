@@ -36,6 +36,10 @@ const jwtr = new JWTR(redisClient);
  */
 const registerUser = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
+  const emailTaken = Users.find({email:email})
+  if (emailTaken) {
+    throw new AppError(`Email already taken`, 409); // Shaktish Changes 25 april
+  }
 
   const validateEmailId = ValidateEmail(email);
   if (password.length === 0) {
