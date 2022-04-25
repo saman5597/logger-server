@@ -568,8 +568,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   const countObjQuery = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
-  ).filter();
-  // .logFilter();
+  ).logFilter();
   const countObj = await countObjQuery.query;
 
   const features = new QueryHelper(
@@ -579,9 +578,8 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
     }),
     req.query
   )
-    .filter()
+    .logFilter()
     .sort()
-    // .logFilter()
     .paginate();
 
   // console.log("countObj", features);
@@ -629,14 +627,14 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   const countObjQuery = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
-  ).alert_filter();
+  ).filter();
   const countObj = await countObjQuery.query;
 
   const features = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
   )
-    .alert_filter()
+    .filter()
     .sort()
     .paginate();
 

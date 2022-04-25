@@ -4,7 +4,7 @@ class QueryHelper {
       this.queryStr = queryStr;
   }
 
-  filter() {
+  logFilter() {
       const queryObj = { ...this.queryStr };
       const excludedFields = ['page', 'sort', 'limit', 'fields'];
       excludedFields.forEach(el => delete queryObj[el]);
@@ -32,7 +32,7 @@ class QueryHelper {
       return this;
   }
 
-  alert_filter() {
+  filter() {
     const queryObj = { ...this.queryStr };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach(el => delete queryObj[el]);
@@ -73,17 +73,6 @@ class QueryHelper {
       return this;
   }
 
-  // logFilter() {
-  //     const queryObj = { ...this.queryStr };
-  //     let result
-  //     if (queryObj.logType) {
-  //         result = (queryObj.logType).split('-');
-  //         this.query = this.query.find({ logType: result });
-  //     }
-
-  //     return this;
-
-  // }
 }
 
 module.exports = QueryHelper;
