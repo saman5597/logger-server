@@ -647,7 +647,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   return res.status(200).json({
     status: 1,
     message: "Successfull ",
-    data: { count: countObj.length, alerts: alerts },
+    data: { count: countObj.length, alerts: alerts, pageLimit: alerts.length },
   });
 });
 
