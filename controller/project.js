@@ -110,8 +110,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
                   enum: [${typeCodeArray}],
                   required: [true, "Atleast one model required."]
                 },
-                ack:[
-                  {
+                ack:{
                     msg: String,
                     code: {
                       type: String,
@@ -122,7 +121,6 @@ const createNewProject = catchAsync(async (req, res, next) => {
                       required: [true, 'Date time is required']
                     }
                   }
-                ]
             },
             schemaOptions
         )
@@ -524,16 +522,21 @@ const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
 
   //  above details will be put in project tables
 
-  const putDataIntoLoggerDb = await new modelReference({
-    did:did,
-    ack:arrayOfObjects,
-    type:type,
-  });
-
-  const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-  if (!isLoggerSaved) {
-    throw new AppError(`Alert entry failed!`, 500);
-  }
+  ack.map(async(ac)=>{
+    const putDataIntoLoggerDb = await new modelReference({
+      did:did,
+      ack:{
+        msg:ac.msg,
+        code:ac.code,
+        timestamp:ac.timestamp
+      },
+      type:type,
+    });
+    const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+    if (!isLoggerSaved) {
+      throw new AppError(`Alert entry failed!`, 500);
+    }
+  })
 
   res.status(201).json({
     status: 1,
@@ -630,18 +633,6 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
   ).filter();
   const countObj = await countObjQuery.query;
 
-  const alertsArray = []
-  countObj.map(al => {
-    al.ack.map( ack => {
-      alertsArray.push({
-        did: al.did,
-        code : ack.code,
-        msg: ack.msg,
-        timestamp: ack.timestamp
-      })
-    })
-  });
-
   const features = new QueryHelper(
     collectionName.find({ type: req.query.projectType }),
     req.query
@@ -652,26 +643,12 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
 
   alerts = await features.query;
 
-  const alertsArr = []
-  alerts.map(al => {
-    al.ack.map( ack => {
-      alertsArr.push({
-        did: al.did,
-        code : ack.code,
-        msg: ack.msg,
-        timestamp: ack.timestamp
-      })
-    })
-  });
-
-  console.log(alertsArr)
-
   // Sending type name instead of type code
 
   return res.status(200).json({
     status: 1,
     message: "Successfull",
-    data: { count: alertsArray.length, pageLimit: alertsArr.length, alerts: alertsArr },
+    data: { count: countObj.length, pageLimit: alerts.length, alerts: alerts },
   });
 });
 
