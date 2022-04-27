@@ -142,7 +142,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
           },
           (err) => {
             if (err) {
-              throw new AppError(`Some error occured during project creation`, 403); // NJ-changes 13 Apr
+              throw new AppError(`Some error occured during alert schema creation`, 500); // NJ-changes 13 Apr
             }
             // console.log("File written successfully");
           }
@@ -199,7 +199,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
     },
     (err) => {
       if (err) {
-        throw new AppError(`Some error occured during project creation`, 500); // NJ-changes 13 Apr
+        throw new AppError(`Some error occured during project schema creation`, 500); // NJ-changes 13 Apr
       }
       // console.log("File written successfully");
     }
@@ -642,7 +642,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
     .paginate();
 
   alerts = await features.query;
-
+  
   // Sending type name instead of type code
 
   return res.status(200).json({
