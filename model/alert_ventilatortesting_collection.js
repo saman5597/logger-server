@@ -29,8 +29,7 @@ const mongoose = require('mongoose');
                 enum: ["001","002"],
                 required: [true, "Atleast one model required."]
             },
-            ack:[
-                {
+            ack:{
                 msg: String,
                 code: {
                     type: String,
@@ -41,7 +40,6 @@ const mongoose = require('mongoose');
                     required: [true, 'Date time is required']
                 }
                 }
-                ]
             },
             schemaOptions
         )
