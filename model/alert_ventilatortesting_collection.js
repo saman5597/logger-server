@@ -35,7 +35,7 @@ const mongoose = require('mongoose');
                     type: String,
                     required: [true, 'Code is required']
                 },
-                timestamp: {
+                date: {
                     type: Date,
                     required: [true, 'Date time is required']
                 }

@@ -116,7 +116,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
                       type: String,
                       required: [true, 'Code is required']
                     },
-                    timestamp: {
+                    date: {
                       type: Date,
                       required: [true, 'Date time is required']
                     }
@@ -528,7 +528,7 @@ const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
       ack:{
         msg:ac.msg,
         code:ac.code,
-        timestamp:ac.timestamp
+        date:ac.timestamp
       },
       type:type,
     });
