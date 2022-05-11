@@ -63,8 +63,8 @@ const createNewProject = catchAsync(async (req, res, next) => {
   const collection_name =
     removeAllSpecialChars(name).toLowerCase() + "_collection";
 
-   const alert_collection_name ='alert_'+
-    removeAllSpecialChars(name).toLowerCase() + "_collection";
+  const alert_collection_name =
+    "alert_" + removeAllSpecialChars(name).toLowerCase() + "_collection";
 
   const project = await new Projects({
     name,
@@ -78,7 +78,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
   if (!savedProject) {
     throw new AppError(`Project not created!!`, 400); // NJ-changes 13 Apr
   }
-    const alertSchemaBlueprint = `
+  const alertSchemaBlueprint = `
     const mongoose = require('mongoose');
     
         const schemaOptions = {
@@ -132,21 +132,24 @@ const createNewProject = catchAsync(async (req, res, next) => {
         module.exports = ${alert_collection_name}
         `;
 
-        fs.writeFile(
-          `${__dirname.concat(`/../model/${alert_collection_name}.js`)}`,
-          alertSchemaBlueprint,
-          {
-            encoding: "utf8",
-            flag: "w",
-            mode: 0o666,
-          },
-          (err) => {
-            if (err) {
-              throw new AppError(`Some error occured during alert schema creation`, 500); // NJ-changes 13 Apr
-            }
-            // console.log("File written successfully");
-          }
-        );
+  fs.writeFile(
+    `${__dirname.concat(`/../model/${alert_collection_name}.js`)}`,
+    alertSchemaBlueprint,
+    {
+      encoding: "utf8",
+      flag: "w",
+      mode: 0o666,
+    },
+    (err) => {
+      if (err) {
+        throw new AppError(
+          `Some error occured during alert schema creation`,
+          500
+        ); // NJ-changes 13 Apr
+      }
+      // console.log("File written successfully");
+    }
+  );
 
   // dynamic schema for logs
 
@@ -199,7 +202,10 @@ const createNewProject = catchAsync(async (req, res, next) => {
     },
     (err) => {
       if (err) {
-        throw new AppError(`Some error occured during project schema creation`, 500); // NJ-changes 13 Apr
+        throw new AppError(
+          `Some error occured during project schema creation`,
+          500
+        ); // NJ-changes 13 Apr
       }
       // console.log("File written successfully");
     }
@@ -481,8 +487,8 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
       // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
       // sendCrashEmail({ msg: log.msg, to: email });
       const url = `${log.msg}`;
-      console.log(url)
-      new Email(email, url).sendCrash()
+      console.log(url);
+      new Email(email, url).sendCrash();
     });
   }
 
@@ -494,8 +500,8 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
 });
 
 /**
- * desc     Alert 
- * api      POST @/api/logger/logs/alerts/:projectCode 
+ * desc     Alert
+ * api      POST @/api/logger/logs/alerts/:projectCode
  */
 const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
   const { project_code } = req.params;
@@ -509,34 +515,30 @@ const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
   console.log(require(`../model/${collectionName}`));
   const modelReference = require(`../model/${collectionName}`);
 
-  const {
-    did,
-    type,
-    ack,
-  } = req.body;
+  const { did, type, ack } = req.body;
 
-  let arrayOfObjects=[]
+  let arrayOfObjects = [];
   for (let i = 0; i < ack.length; i++) {
     arrayOfObjects.push(ack[i]);
   }
 
   //  above details will be put in project tables
 
-  ack.map(async(ac)=>{
+  ack.map(async (ac) => {
     const putDataIntoLoggerDb = await new modelReference({
-      did:did,
-      ack:{
-        msg:ac.msg,
-        code:ac.code,
-        date:ac.timestamp
+      did: did,
+      ack: {
+        msg: ac.msg,
+        code: ac.code,
+        date: ac.timestamp,
       },
-      type:type,
+      type: type,
     });
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     if (!isLoggerSaved) {
       throw new AppError(`Alert entry failed!`, 500);
     }
-  })
+  });
 
   res.status(201).json({
     status: 1,
@@ -610,7 +612,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
  *
  */
 
- const getAlertsWithFilter = catchAsync(async (req, res, next) => {
+const getAlertsWithFilter = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
 
   if (!req.query.projectType) {
@@ -642,7 +644,7 @@ const getProjectWithFilter = catchAsync(async (req, res, next) => {
     .paginate();
 
   alerts = await features.query;
-  
+
   // Sending type name instead of type code
 
   return res.status(200).json({
@@ -697,16 +699,14 @@ const getProjectLogs = catchAsync(async (req, res, next) => {
     throw new AppError(`Provide start date and end date.`, 400); // NJ-changes 13 Apr
   }
 
-
   if (!req.params.projectCode) {
     throw new AppError(`Project type is required`, 400); // NJ-changes 13 Apr
   }
 
   const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
 
-  let dt = new Date(req.query.endDate)
-  dt.setDate(dt.getDate() + 1)
-
+  let dt = new Date(req.query.endDate);
+  dt.setDate(dt.getDate() + 1);
 
   const typeWiseCount = await collectionName.aggregate([
     {
@@ -860,9 +860,8 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
   }
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
 
-  let dt = new Date(req.query.endDate)
-  dt.setDate(dt.getDate() + 1)
-
+  let dt = new Date(req.query.endDate);
+  dt.setDate(dt.getDate() + 1);
 
   const countResponse = await collectionName.aggregate([
     {
@@ -875,7 +874,7 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
             },
           },
           { type: req.query.projectType },
-          { "log.type": "error" }
+          { "log.type": "error" },
         ],
       },
     },
@@ -930,10 +929,7 @@ const dateWiseLogCount = catchAsync(async (req, res, next) => {
       $project: {
         stats: {
           $map: {
-            input: getDaysArray(
-              new Date(req.query.startDate),
-              dt
-            ),
+            input: getDaysArray(new Date(req.query.startDate), dt),
             as: "date_new",
             in: {
               $let: {
@@ -1238,8 +1234,8 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
   }
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
 
-  let dt = new Date(req.query.endDate)
-  dt.setDate(dt.getDate() + 1)
+  let dt = new Date(req.query.endDate);
+  dt.setDate(dt.getDate() + 1);
 
   const countResponse = await collectionName.aggregate([
     {
@@ -1321,10 +1317,7 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
       $project: {
         stats: {
           $map: {
-            input: getDaysArray(
-              new Date(req.query.startDate),
-              dt
-            ),
+            input: getDaysArray(new Date(req.query.startDate), dt),
             as: "date_new",
             in: {
               $let: {

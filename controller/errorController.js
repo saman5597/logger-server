@@ -69,7 +69,7 @@ module.exports = (err, req, res, next) => {
 
 // global error handling
 module.exports = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
+  err.statusCode = err.statusCode || 400;
   err.status = err.status ?? "error";
   // console.log("chal ja bhai", err.status);
   console.log(err);
