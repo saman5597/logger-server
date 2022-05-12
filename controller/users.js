@@ -256,7 +256,8 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
 
   const url = `${otp}`;
   console.log("userpassword", email, url)
-
+  
+  
   new Email(email, url).forgetPassword()
 
   return res.status(200).json({ success: true, message: `Email send to you!` });
