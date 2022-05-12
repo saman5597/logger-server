@@ -36,7 +36,7 @@ const jwtr = new JWTR(redisClient);
  */
 const registerUser = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
-  const emailTaken = Users.find({email:email})
+  const emailTaken = await Users.findOne({ email: email });
   if (emailTaken) {
     throw new AppError(`Email already taken`, 409); // Shaktish Changes 25 april
   }
@@ -60,8 +60,8 @@ const registerUser = catchAsync(async (req, res, next) => {
     const savedUser = await user.save(user);
 
     if (savedUser) {
-      const url = `${req.protocol}://${req.get('host')}/welcome`;
-      new Email(email, url).sendWelcome()
+      const url = `${req.protocol}://${req.get("host")}/welcome`;
+      new Email(email, url).sendWelcome();
 
       res.status(201).json({
         status: 1,
@@ -75,7 +75,6 @@ const registerUser = catchAsync(async (req, res, next) => {
     throw new AppError(`Invalid email address.`, 404); // NJ-changes 13 Apr
   }
 
-  
   // } catch (error) {
   //   if (error.code === 11000) {
   //     throw new AppError(
@@ -255,10 +254,9 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   }
 
   const url = `${otp}`;
-  console.log("userpassword", email, url)
-  
-  
-  new Email(email, url).forgetPassword()
+  console.log("userpassword", email, url);
+
+  new Email(email, url).forgetPassword();
 
   return res.status(200).json({ success: true, message: `Email send to you!` });
 });
@@ -304,8 +302,6 @@ const resetForgetPassword = catchAsync(async (req, res, next) => {
     ); // NJ-changes 13 Apr
   }
 
-
-
   if (user.email === fp.email) {
     // update password of user
     const salt = await bcrypt.genSalt();
@@ -317,7 +313,6 @@ const resetForgetPassword = catchAsync(async (req, res, next) => {
     await ForgetPassword.deleteMany({ user: user._id });
 
     // SENDING FORGET MAIL USER
-
 
     // delete cookie email and other token
     return (
@@ -355,7 +350,8 @@ const userPasswordChagne = catchAsync(async (req, res, next) => {
     throw new AppError(`new password should not be empty`, 400); // NJ-changes 13 Apr
   }
   //  new password should not match current password -----
-  if (currentPassword === newPassword) {    throw new AppError(`Current and new password should be same`, 401); // NJ-changes 13 Apr
+  if (currentPassword === newPassword) {
+    throw new AppError(`Current and new password should be same`, 401); // NJ-changes 13 Apr
   }
 
   const user = await Users.findById(req.user);
