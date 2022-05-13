@@ -355,7 +355,7 @@ const userPasswordChagne = catchAsync(async (req, res, next) => {
   }
   //  new password should not match current password -----
   if (currentPassword === newPassword) {
-    throw new AppError(`Current and new password should be same`, 401); // NJ-changes 13 Apr
+    throw new AppError(`Current and New password should not be same`, 401); // NJ-changes 13 Apr
   }
 
   const user = await Users.findById(req.user);
