@@ -37,6 +37,7 @@ const jwtr = new JWTR(redisClient);
 const registerUser = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
   const emailTaken = await Users.findOne({ email: email });
+  console.log("email", emailTaken);
   if (emailTaken) {
     throw new AppError(`Email already taken`, 409); // Shaktish Changes 25 april
   }
@@ -49,7 +50,7 @@ const registerUser = catchAsync(async (req, res, next) => {
   const salt = await bcrypt.genSalt();
   const passwordHash = await bcrypt.hash(password, salt);
 
-  if (validateEmailId) {
+  // if (validateEmailId) {
     const user = await new Users({
       name,
       email,
@@ -57,7 +58,10 @@ const registerUser = catchAsync(async (req, res, next) => {
       passwordHash,
       image: "",
     });
+    // console.log("user", user);
+
     const savedUser = await user.save(user);
+    // console.log("save", savedUser);
 
     if (savedUser) {
       const url = `${req.protocol}://${req.get("host")}/welcome`;
@@ -71,9 +75,9 @@ const registerUser = catchAsync(async (req, res, next) => {
     } else {
       throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
     }
-  } else {
-    throw new AppError(`Invalid email address.`, 404); // NJ-changes 13 Apr
-  }
+  // } else {
+  //   throw new AppError(`Invalid email address.`, 400); // NJ-changes 13 Apr
+  // }
 
   // } catch (error) {
   //   if (error.code === 11000) {
