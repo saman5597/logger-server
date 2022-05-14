@@ -1067,6 +1067,7 @@ const getlogMsgOccurence = catchAsync(async (req, res, next) => {
   if (req.query.msg.length > 26) {
     trimmedLogMsg = req.query.msg.substring(0, 26);
   } else trimmedLogMsg = req.query.msg;
+  trimmedLogMsg = trimmedLogMsg.replace("[", "")
 
   const projectCollection = await Projects.findOne({ code: projectCode });
   if (!projectCollection) {
@@ -1132,6 +1133,8 @@ const logOccurrences = catchAsync(async (req, res, next) => {
   if (trimmedLogMsg.includes("(") && !trimmedLogMsg.includes(")")) {
     trimmedLogMsg = trimmedLogMsg.concat(")");
   }
+  trimmedLogMsg = trimmedLogMsg.replace("[", "")
+  
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
   const response = await collectionName.aggregate([
     {
@@ -1370,6 +1373,7 @@ const crashlyticsData = catchAsync(async (req, res, next) => {
   if (req.query.logMsg.length > 26) {
     trimmedLogMsg = req.query.logMsg.substring(0, 26);
   } else trimmedLogMsg = req.query.logMsg;
+  trimmedLogMsg = trimmedLogMsg.replace("[", "")
 
   if (!projectCode) {
     throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
