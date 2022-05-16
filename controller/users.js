@@ -37,7 +37,7 @@ const jwtr = new JWTR(redisClient);
 const registerUser = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
   const emailTaken = await Users.findOne({ email: email });
-  console.log("email", emailTaken);
+  console.log("email", email);
   if (emailTaken) {
     throw new AppError(`Email already taken`, 409); // Shaktish Changes 25 april
   }
@@ -51,30 +51,33 @@ const registerUser = catchAsync(async (req, res, next) => {
   const passwordHash = await bcrypt.hash(password, salt);
 
   // if (validateEmailId) {
-    const user = await new Users({
-      name,
-      email,
-      isSuperAdmin: false,
-      passwordHash,
-      image: "",
+  const user = await new Users({
+    name,
+    email,
+    isSuperAdmin: false,
+    passwordHash,
+    image: "",
+  });
+  // console.log("user", user);
+
+  const savedUser = await user.save(user);
+  // console.log("save", savedUser);
+
+  if (savedUser) {
+    const url = `${req.protocol}://${req.get("host")}/welcome`;
+    // console.log("first", email, url);
+    new Email(email, url).sendWelcome();
+
+    console.log("email sent to user");
+
+    res.status(201).json({
+      status: 1,
+      data: { name: savedUser.name, avatar: savedUser.image },
+      message: "Registration successfull!",
     });
-    // console.log("user", user);
-
-    const savedUser = await user.save(user);
-    // console.log("save", savedUser);
-
-    if (savedUser) {
-      const url = `${req.protocol}://${req.get("host")}/welcome`;
-      new Email(email, url).sendWelcome();
-
-      res.status(201).json({
-        status: 1,
-        data: { name: savedUser.name, avatar: savedUser.image },
-        message: "Registration successfull!",
-      });
-    } else {
-      throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
-    }
+  } else {
+    throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
+  }
   // } else {
   //   throw new AppError(`Invalid email address.`, 400); // NJ-changes 13 Apr
   // }
@@ -238,6 +241,7 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
 
   const user = await Users.findOne({ email });
+  // console.log("user", user);
 
   if (!user) {
     throw new AppError(`Email does not exist!`, 404); // NJ-changes 13 Apr
@@ -258,7 +262,7 @@ const userForgetPassword = catchAsync(async (req, res, next) => {
   }
 
   const url = `${otp}`;
-  console.log("userpassword", email, url);
+  // console.log("userpassword", email, url);
 
   new Email(email, url).forgetPassword();
 

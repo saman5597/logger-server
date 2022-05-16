@@ -43,7 +43,6 @@ app.use("/api/logger/projects", projects);
 
 // Logs Routing
 app.use("/api/logger/logs",logs)
-
 // error handling for all routes which are not define
 app.all('*', (req, res, next) => {
   next(

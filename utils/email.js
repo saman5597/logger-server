@@ -4,12 +4,11 @@ const htmlToText = require("html-to-text");
 
 module.exports = class Email {
   constructor(user, url) {
-    this.to = user;
+    console.log("user", user);
+    this.to = user.email;
     this.firstName = user.split("@")[0];
     this.url = url;
-    this.from = `LogCat Support <${process.env.MAIL_FROM}>`;
-
-    // console.log("first", user, url);
+    this.from = `LogCat <${process.env.EMAIL_FROM}>`;
   }
 
   newTransport() {
@@ -19,11 +18,11 @@ module.exports = class Email {
     }
 
     return nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
-      port: process.env.MAIL_PORT,
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
       auth: {
-        user: process.env.MAIL_USERNAME,
-        pass: process.env.MAIL_PASSWORD,
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
       },
     });
   }
@@ -49,8 +48,6 @@ module.exports = class Email {
       text: htmlToText.fromString(html),
     };
 
-    console.log("first", mailOptions);
-
     // 3) Create a transport and send email
     await this.newTransport().sendMail(mailOptions);
   }
@@ -60,12 +57,10 @@ module.exports = class Email {
   }
 
   async sendCrash() {
-    await this.send("crash", "Crash Notification: LogCat")
+    await this.send("crash", "Crash Notification: LogCat");
   }
 
   async forgetPassword() {
-    await this.send("forgetPassword", "Password Reset OTP: LogCat")
+    await this.send("forgetPassword", "Password Reset OTP: LogCat");
   }
-
-
 };
