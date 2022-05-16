@@ -2,7 +2,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const upload = require("express-fileupload");
-const bodyParser = require("body-parser");
 const connectDB = require("./config/db.js");
 const morgan = require("morgan");
 const globalErrorHandler = require("./controller/errorController");
@@ -30,11 +29,11 @@ app.use(cors());
 app.use(upload()); // for multipart data type
 app.use(express.static("public"));
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true, defaultCharset: "utf-8" }));
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true, defaultCharset: "utf-8" }));
 
-app.use(express.json({ limit: "30mb", extended: true }));
-app.use(express.urlencoded({ limit: "30mb", extended: true }));
+app.use(express.json({ limit: "512kb", extended: true }));
+app.use(express.urlencoded({ limit: "512kb", extended: true }));
 
 // Users Routing
 app.use("/api/logger", users);
