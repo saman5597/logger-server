@@ -37,7 +37,7 @@ const jwtr = new JWTR(redisClient);
 const registerUser = catchAsync(async (req, res, next) => {
   const { name, email, password } = req.body;
   const emailTaken = await Users.findOne({ email: email });
-  console.log("email", email);
+  // console.log("email", email);
   if (emailTaken) {
     throw new AppError(`Email already taken`, 409); // Shaktish Changes 25 april
   }
@@ -68,7 +68,7 @@ const registerUser = catchAsync(async (req, res, next) => {
     // console.log("first", email, url);
     new Email(email, url).sendWelcome();
 
-    console.log("email sent to user");
+    // console.log("email sent to user");
 
     res.status(201).json({
       status: 1,
@@ -170,22 +170,22 @@ const loginUser = catchAsync(async (req, res, next) => {
 
 const updateUserProfile = catchAsync(async (req, res, next) => {
   const { name, email } = req.body;
-  console.log(req.files);
-  console.log(req.body);
+  // console.log(req.files);
+  // console.log(req.body);
 
   if (req.files) {
     var image = await req.files;
   }
 
   const user = await Users.findOne({ id: req.user.id });
-  console.log(user);
+  // console.log(user);
   if (!user) {
     throw new AppError(`User does not found`, 404); // NJ-changes 13 Apr
   }
 
   // uploading image if exists
   let filenameToStore = "";
-  console.log(image);
+  // console.log(image);
   if (req.files) {
     if (user.image) {
       filenameToStore = updateFile(req, "user_image", user.image);
@@ -202,7 +202,7 @@ const updateUserProfile = catchAsync(async (req, res, next) => {
   user.image = filenameToStore;
   // user.image = filenameToStore != "" ? filenameToStore : !user.image ? "ddUserDefaultIcon.png" : user.image;
   const isSaved = await user.save();
-  console.log("image: ", isSaved);
+  // console.log("image: ", isSaved);
   if (!isSaved) {
     throw new AppError(`User profile update fail`, 404); // NJ-changes 13 Apr
   }
@@ -381,7 +381,7 @@ const userPasswordChagne = catchAsync(async (req, res, next) => {
   // console.log("password", newPasswordHash);
   user.passwordHash = newPasswordHash;
   await user.save();
-  console.log("user after save", user);
+  // console.log("user after save", user);
 
   return res
     .status(200)

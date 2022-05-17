@@ -191,7 +191,7 @@ const createNewProject = catchAsync(async (req, res, next) => {
         
         module.exports = ${collection_name}
         `;
-  console.log(`${__dirname.concat(`/../model/${collection_name}.js`)}`);
+  // console.log(`${__dirname.concat(`/../model/${collection_name}.js`)}`);
   fs.writeFile(
     `${__dirname.concat(`/../model/${collection_name}.js`)}`,
     schemaBlueprint,
@@ -373,7 +373,7 @@ const updateProjectWithProjectCode = catchAsync(async (req, res, next) => {
 
 const addEmailWithProjectCode = catchAsync(async (req, res, next) => {
   const { projectCode } = req.params;
-  console.log(req.body);
+  // console.log(req.body);
   const { email } = req.body;
   if (!email) {
     throw new AppError(`No email available.`, 400); // NJ-changes 13 Apr
@@ -429,7 +429,7 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
   }
 
   const collectionName = findProjectWithCode.collection_name;
-  console.log(require(`../model/${collectionName}`));
+  // console.log(require(`../model/${collectionName}`));
   const modelReference = require(`../model/${collectionName}`);
   // testprojectmodified_collection
 
@@ -487,7 +487,7 @@ const makeEntriesInDeviceLogger = catchAsync(async (req, res, next) => {
       // {msg = 'Hello, ', to='xyz@gmail.com',from = 'support@logcat.com',next})
       // sendCrashEmail({ msg: log.msg, to: email });
       const url = `${log.msg}`;
-      console.log(url);
+      // console.log(url);
       new Email(email, url).sendCrash();
     });
   }
@@ -512,7 +512,7 @@ const makeEntriesInAlertLogger = catchAsync(async (req, res, next) => {
     throw new AppError(`Project does not exist`, 404);
   }
   const collectionName = findProjectWithCode.alert_collection_name;
-  console.log(require(`../model/${collectionName}`));
+  // console.log(require(`../model/${collectionName}`));
   const modelReference = require(`../model/${collectionName}`);
 
   const { did, type, ack } = req.body;
@@ -997,7 +997,7 @@ const getLogsCountWithOs = catchAsync(async (req, res, next) => {
     { $project: { osArchitecture: "$_id", count: 1, _id: 0 } },
   ]);
 
-  console.log(osParticularCount);
+  // console.log(osParticularCount);
   return res.status(200).json({
     status: 1,
     data: {
@@ -1382,7 +1382,7 @@ const crashlyticsData = catchAsync(async (req, res, next) => {
   if (!projectCollection) {
     throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
   }
-  console.log(projectCollection);
+  // console.log(projectCollection);
   const collectionName = require(`../model/${projectCollection.collection_name}.js`);
   const versionResponse = await collectionName.aggregate([
     {

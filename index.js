@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const path = require("path")
 const cors = require("cors");
 const upload = require("express-fileupload");
 const connectDB = require("./config/db.js");
@@ -28,6 +29,10 @@ app.enable("trust proxy");
 app.use(cors());
 app.use(upload()); // for multipart data type
 app.use(express.static("public"));
+
+// adding static folder
+app.use(express.static(path.join(__dirname, 'public'))); 
+// console.log(app.use(express.static(path.join(__dirname, 'public'))))
 
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true, defaultCharset: "utf-8" }));

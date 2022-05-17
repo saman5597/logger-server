@@ -4,25 +4,26 @@ const htmlToText = require("html-to-text");
 
 module.exports = class Email {
   constructor(user, url) {
-    console.log("user", user);
-    this.to = user.email;
+    this.to = user;
     this.firstName = user.split("@")[0];
     this.url = url;
-    this.from = `LogCat <${process.env.EMAIL_FROM}>`;
+    this.from = `LogCat  <${process.env.MAIL_FROM}>`;
+    console.log("user", user, url);
   }
 
   newTransport() {
-    if (process.env.NODE_ENV === "production") {
-      // Sendgrid
-      return 1;
-    }
+    // if (process.env.NODE_ENV === "PRODUCTION") {
+    //   // Sendgrid
+    //   return 1;
+    //   // console.log("this code is running");
+    // }
 
     return nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
+      host: process.env.MAIL_HOST,
+      port: process.env.MAIL_PORT,
       auth: {
-        user: process.env.EMAIL_USERNAME,
-        pass: process.env.EMAIL_PASSWORD,
+        user: process.env.MAIL_USERNAME,
+        pass: process.env.MAIL_PASSWORD,
       },
     });
   }
@@ -39,6 +40,8 @@ module.exports = class Email {
       }
     );
 
+    console.log("html", html);
+
     // 2) Define email options
     const mailOptions = {
       from: this.from,
@@ -48,8 +51,15 @@ module.exports = class Email {
       text: htmlToText.fromString(html),
     };
 
+    console.log("mailOptions", mailOptions);
+
     // 3) Create a transport and send email
-    await this.newTransport().sendMail(mailOptions);
+    await this.newTransport().sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.log("error", err);
+      }
+      console.log("info", info);
+    });
   }
 
   async sendWelcome() {
