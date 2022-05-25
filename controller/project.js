@@ -1251,9 +1251,6 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
   let dt = new Date(req.query.endDate);
   dt.setDate(dt.getDate() + 1);
 
-  const totalUsers = await collectionName.find().distinct("device.did")
-  console.log(totalUsers)
-
   const countResponse = await collectionName.aggregate([
     {
       $match: {
