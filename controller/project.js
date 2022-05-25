@@ -827,10 +827,21 @@ const getDeviceCount = catchAsync(async (req, res, next) => {
     throw new AppError(`Collection Not Found`, 404); // NJ-changes 13 Apr
   }
 
-  const collection = await collectionName
-    .find()
-    .populate("device")
-    .distinct("device.did");
+  const totalUsers = await collectionName.aggregate([
+    {
+      $lookup: {
+        from: "devices",
+        localField: "device",
+        foreignField: "_id",
+        as: "device",
+      },
+    },
+    {
+      $group: {
+        _id: "$device.did",
+      },
+    }
+  ])
 
   return res.status(200).json({
     status: 1,
@@ -838,7 +849,7 @@ const getDeviceCount = catchAsync(async (req, res, next) => {
       projectCreationDate: createdAt,
       currentStatus,
       modelList,
-      deviceCount: collection.length,
+      deviceCount: totalUsers.length || 0,
     },
     message: "successfull",
   });
@@ -1239,6 +1250,9 @@ const crashFreeUsersDatewise = catchAsync(async (req, res, next) => {
 
   let dt = new Date(req.query.endDate);
   dt.setDate(dt.getDate() + 1);
+
+  const totalUsers = await collectionName.find().distinct("device.did")
+  console.log(totalUsers)
 
   const countResponse = await collectionName.aggregate([
     {
