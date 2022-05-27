@@ -37,9 +37,18 @@ const authUser = async (req, res, next) => {
 
     // proceed after authentication
     next();
-  } catch (error) {
-    // console.log(error);
-    next(new AppError(`${error.message}`, 401)); // NJ-changes 13 Apr
+  } catch (err) {
+    res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.message,
+          msg: "Internal Server Error.",
+          type: err.name,
+        },
+      },
+    });
   }
 };
 

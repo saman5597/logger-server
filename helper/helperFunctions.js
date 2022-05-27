@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 // const otpGenerator = require('otp-generator');
 
-const makeid = (length) => {
+const makeId = (length) => {
     var result           = '';
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     var charactersLength = characters.length;
@@ -47,19 +47,10 @@ const checkMD5 = (md5Hash)=>{
   return regexExp.test(md5Hash);
 }
 
-
-const createOtp = (length,specialChars)=>{
-    // const otp = otpGenerator.generate(length,{specialChars: specialChars});
-    const otp = makeid(length)
-    return otp;
-}
-
-
 module.exports = {
-  makeid,
+  makeId,
   removeAllSpecialChars,
   getDaysArray,
   checkCollectionName,
-  checkMD5,
-  createOtp
+  checkMD5
 }

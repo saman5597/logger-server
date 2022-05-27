@@ -1,4 +1,3 @@
-const User = require("../model/users");
 const { checkMD5 } = require("../helper/helperFunctions.js");
 const AppError = require("../utils/appError");
 
@@ -26,8 +25,17 @@ const authDevice = async (req, res, next) => {
 
     next();
   } catch (error) {
-    // console.log(error);
-    next(new AppError(`${error.message}`, 400)); // NJ-changes 13 Apr
+    res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.message,
+          msg: "Internal Server Error.",
+          type: err.name,
+        },
+      },
+    });
   }
 };
 

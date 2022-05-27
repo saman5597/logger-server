@@ -12,9 +12,7 @@ const handleDuplicateFieldsDB = (err) => {
 };
 
 const handleValidationErrorDB = (err) => {
-  const errors = Object.values(err.errors).map((el) => el.message);
-
-  const message = `Invalid input data. ${errors.join(". ")}`;
+  const message = `Invalid input data. ${err.body}`;
   return new AppError(message, 400);
 };
 
@@ -22,25 +20,38 @@ const handleValidationErrorDB = (err) => {
 
 const sendErrorDev = (err, res) => {
   res.status(err.statusCode).json({
-    status: err.status,
-    error: err,
-    message: err.message,
-    stack: err.stack,
+    status: -1,
+    data: {
+      err: {
+        generatedTime: new Date(),
+        errMsg: err.stack,
+        msg: err.message,
+        type: err.type,
+      },
+    },
   });
 };
 
 // PRODUCTION ENV ERROR
 
 const sendErrorProd = (err, res) => {
+  // console.log(err)
   // Operational, trusted error: send message to client
   if (err.isOperational) {
     res.status(err.statusCode).json({
-      status: err.status,
-      message: err.message,
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: "Internal Server Error.",
+          msg: "Internal Server Error.",
+          type: "ServerError",
+        },
+      },
     });
   } else {
     // 1) Log error
-    console.error("ERROR 💥: ", err);
+    console.error("ERROR: ", err);
 
     // 2) Send generic message
     res.status(500).json({
@@ -51,7 +62,7 @@ const sendErrorProd = (err, res) => {
 };
 
 module.exports = (err, req, res, next) => {
-  err.statusCode = err.statusCode ?? 500;
+  err.statusCode = err.statusCode;
   err.status = err.status || "error";
   // IF ERROR COMES IN DEVELOPMENT ENV
   if (process.env.NODE_ENV === "development") {
@@ -61,23 +72,8 @@ module.exports = (err, req, res, next) => {
   else if (process.env.NODE_ENV === "PRODUCTION") {
     let error = { ...err };
     if (error.name === "CastError") error = handleCastErrorDB(error);
-    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-    error = handleValidationErrorDB(error);
-    sendErrorProd(err, res);
+    else if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+    else error = handleValidationErrorDB(error);
+    sendErrorProd(error, res);
   }
-};
-
-// global error handling
-module.exports = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 400;
-  err.status = err.status ?? "error";
-  // console.log("chal ja bhai", err.status);
-  console.log(err);
-
-  res.status(err.statusCode).json({
-    status: err.status,
-    message: err.message,
-    type: err.type,
-    generatedTime: new Date(),
-  });
 };

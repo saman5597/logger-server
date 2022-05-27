@@ -1,9 +1,8 @@
 const mongoose = require('mongoose')
-const ValidateMail = require('../helper/mongooseMailValidator')
 
 const userSchema = mongoose.Schema({
     name:{
-        required:true,
+        required:[true, "Name is required"],
         type: String
     },
     isSuperAdmin:{
@@ -17,8 +16,7 @@ const userSchema = mongoose.Schema({
     email:{
         type:String,
         unique: true,
-        required:'Email address is required',
-        // validate: [ValidateMail, 'Please fill a valid email address'],
+        required:[true,'Email address is required'],
         match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
     },
     passwordHash:{

@@ -1,20 +1,5 @@
 const mongoose = require("mongoose");
 
-const osSchema = mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, "OS name is required"],
-  },
-  // version: {
-  //   type: String,
-  //   required: [true, "OS version is required"],
-  // },
-  type: {
-    type: String,
-    enum: ["Linux", "Windows", "MacOS", "Other"],
-  },
-});
-
 const deviceSchema = mongoose.Schema(
   {
     did: {
