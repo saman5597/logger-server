@@ -171,19 +171,6 @@ const makeEntriesInAlertLogger = catchAsync(
   }
 );
 
-// (    return res.status(500).json({
-//       status: err.status,
-//       data: {
-//         err: {
-//           generatedTime: new Date(),
-//           errMsg: err.stack,
-//           msg: err.message,
-//           type: err.name,
-//         },
-//       },
-//     });
-//   })
-// });
 
 /**
  * desc     get project with filter
@@ -1073,10 +1060,7 @@ const getLogsCountWithModelName = catchAsync(
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    // if (!collectionName)
-    //   throw {
-    //     message: "Project Not Found ",
-    //   };
+    
 
     const modelTotalCount = await collectionName.countDocuments();
     const modelNameParticularCount = await collectionName.aggregate([

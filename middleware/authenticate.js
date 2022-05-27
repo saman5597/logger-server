@@ -18,18 +18,49 @@ const jwtr = new JWTR(redisClient);
 
 const authUser = async (req, res, next) => {
   try {
-    if (!req.headers["authorization"])
-      throw { message: "You are not logged in!!" };
+    if (!req.headers["authorization"]) {
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "You are not logged in!!",
+            msg: "You are not logged in!!",
+            type: "AuthenticationError",
+          },
+        },
+      });
+    }
+    
     const token = req.headers["authorization"].split(" ")[1];
 
     if (!token) {
-      // return res.status(401).json({'errormessage':"Authentication Failed!"});
-      throw new AppError(`Unauthenticated.`, 401); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User is not authenticated.",
+            msg: "User is not authenticated.",
+            type: "AuthenticationError",
+          },
+        },
+      }); // NJ-changes 13 Apr
     }
 
     const verified = await jwtr.verify(token, process.env.JWT_SECRET);
     if (!verified) {
-      throw new AppError(`Not verified.`, 401); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User is not authenticated.",
+            msg: "User is not authenticated.",
+            type: "AuthenticationError",
+          },
+        },
+      });
     }
     req.user = verified.user;
     console.log("req user", req.user);
@@ -53,15 +84,40 @@ const authUser = async (req, res, next) => {
 };
 
 const restrictToRole = async (req, res, next) => {
-  // console.log("request created",req.user)
-  const user = await User.findById(req.user);
-  console.log("Details of user", user);
-  console.log(user.isSuperAdmin);
+  try {
+    const user = await User.findById(req.user);
+    console.log("Details of user", user);
+    console.log(user.isSuperAdmin);
 
-  if (!user.isSuperAdmin) {
-    throw new AppError(`You dont have permission to access this.`, 403); // NJ-changes 13 Apr
+    if (!user.isSuperAdmin) {
+      return res.status(403).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "You dont have permission to access this.",
+            msg: "You dont have permission to access this.",
+            type: "AuthenticationError",
+          },
+        },
+      });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.message,
+          msg: "Internal Server Error",
+          type: err.name,
+        },
+      },
+    });
   }
-  next();
+
+  // console.log("request created",req.user)
 };
 
 module.exports = { authUser, restrictToRole };

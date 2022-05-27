@@ -54,20 +54,6 @@ const registerUser = catchAsync(
 
     const savedUser = await user.save(user);
 
-    if (!savedUser) {
-      res.status(500).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "User not register",
-            msg: "User not register",
-            type: "MongodbError",
-          },
-        },
-      });
-    }
-
     if (savedUser) {
       const url = `${req.protocol}://${req.get("host")}/welcome`;
 
@@ -79,7 +65,17 @@ const registerUser = catchAsync(
         message: "Registered successfully!",
       });
     } else {
-      throw new AppError(`Some error happened during registration`, 400); // NJ-changes 13 Apr
+      res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Some error happened during registration",
+            msg: "Some error happened during registration",
+            type: "MongodbError",
+          },
+        },
+      });
     }
   },
   (err, res) => {
@@ -223,7 +219,7 @@ const userForgetPassword = catchAsync(
 
     const storeOTP = await store.save(store);
     if (!storeOTP) {
-      res.status(500).json({
+      return res.status(500).json({
         status: 0,
         data: {
           err: {
@@ -307,7 +303,7 @@ const resetForgetPassword = catchAsync(
       user.passwordHash = passwordHash;
       const saveUser = await user.save();
       if (!saveUser) {
-        res.status(500).json({
+        return res.status(500).json({
           status: 0,
           data: {
             err: {
@@ -326,7 +322,7 @@ const resetForgetPassword = catchAsync(
       // SENDING FORGET MAIL USER
 
       // delete cookie email and other token
-      return res.json({
+      return res.status(200).json({
         success: true,
         message: "password reset successfully",
       });
