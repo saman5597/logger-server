@@ -84,7 +84,6 @@ const makeEntriesInDeviceLogger = catchAsync(
     });
   },
   (err, res) => {
-    console.log(`Error : ${err}`);
     return res.status(err.statusCode).json({
       status: err.status,
       data: {
@@ -104,7 +103,7 @@ const makeEntriesInDeviceLogger = catchAsync(
  * api      POST @/api/logger/logs/alerts/:projectCode
  */
 const makeEntriesInAlertLogger = catchAsync(
-  async (req, res) => {
+  async (req, res, next) => {
     const { project_code } = req.params;
     // check project exist or not
     const findProjectWithCode = await Projects.findOne({ code: project_code });
@@ -122,11 +121,7 @@ const makeEntriesInAlertLogger = catchAsync(
       arrayOfObjects.push(ack[i]);
     }
 
-    //  above details will be put in project tables
-
-    console.log("ack", ack);
-
-    ack.map(async (ac) => {
+    let dbSavePromise = ack.map(async (ac) => {
       const putDataIntoLoggerDb = await new modelReference({
         did: did,
         ack: {
@@ -136,86 +131,33 @@ const makeEntriesInAlertLogger = catchAsync(
         },
         type: type,
       });
-      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-      if (!isLoggerSaved) {
-        res.status(500).json({
-          status: 0,
-          data: {
-            err: {
-              generatedTime: new Date(),
-              errMsg: "Alert entries not saved",
-              msg: "Alert entries not saved",
-              type: "MongodbError",
-            },
-          },
-        });
-      }
+
+      return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     });
 
-    // --------------------------------------------------------------------------
-    // Promise.all(
-    //   ack.map(async (ac) => {
-    //     const putDataIntoLoggerDb = await new modelReference({
-    //       did: did,
-    //       ack: {
-    //         msg: ac.msg,
-    //         code: ac.code,
-    //         date: ac.timestamp,
-    //       },
-    //       type: type,
-    //     });
-    //   })
-    // );
-    const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    if (!isLoggerSaved) {
+    let isLoggerSaved = await Promise.allSettled(dbSavePromise);
+    if (isLoggerSaved) {
+      return res.status(201).json({
+        status: 1,
+        data: {},
+        message: "Successful",
+      });
+    } else {
       res.status(500).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: "Alert entries not saved",
-            msg: "Alert entries not saved",
+            errMsg: "Log not saved",
+            msg: "Log not saved",
             type: "MongodbError",
           },
         },
       });
     }
-
-    // ack.map(async (ac) => {
-    //   const putDataIntoLoggerDb = await new modelReference({
-    //     did: did,
-    //     ack: {
-    //       msg: ac.msg,
-    //       code: ac.code,
-    //       date: ac.timestamp,
-    //     },
-    //     type: type,
-    //   });
-    //   const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    //   if (!isLoggerSaved) {
-    //     res.status(500).json({
-    //       status: 0,
-    //       data: {
-    //         err: {
-    //           generatedTime: new Date(),
-    //           errMsg: "Alert entries not saved",
-    //           msg: "Alert entries not saved",
-    //           type: "MongodbError",
-    //         },
-    //       },
-    //     });
-    //   }
-    // });
-
-    res.status(201).json({
-      status: 1,
-      data: {},
-      message: "Successful",
-    });
   },
   (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
+    return res.status(500).json({
       status: err.status,
       data: {
         err: {
@@ -228,6 +170,20 @@ const makeEntriesInAlertLogger = catchAsync(
     });
   }
 );
+
+// (    return res.status(500).json({
+//       status: err.status,
+//       data: {
+//         err: {
+//           generatedTime: new Date(),
+//           errMsg: err.stack,
+//           msg: err.message,
+//           type: err.name,
+//         },
+//       },
+//     });
+//   })
+// });
 
 /**
  * desc     get project with filter
