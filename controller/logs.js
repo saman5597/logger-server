@@ -126,46 +126,46 @@ const makeEntriesInAlertLogger = catchAsync(
 
     console.log("ack", ack);
 
-    // ack.map(async (ac) => {
-    //   const putDataIntoLoggerDb = await new modelReference({
-    //     did: did,
-    //     ack: {
-    //       msg: ac.msg,
-    //       code: ac.code,
-    //       date: ac.timestamp,
-    //     },
-    //     type: type,
-    //   });
-    //   const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
-    //   if (!isLoggerSaved) {
-    //     res.status(500).json({
-    //       status: 0,
-    //       data: {
-    //         err: {
-    //           generatedTime: new Date(),
-    //           errMsg: "Alert entries not saved",
-    //           msg: "Alert entries not saved",
-    //           type: "MongodbError",
-    //         },
-    //       },
-    //     });
-    //   }
-    // });
+    ack.map(async (ac) => {
+      const putDataIntoLoggerDb = await new modelReference({
+        did: did,
+        ack: {
+          msg: ac.msg,
+          code: ac.code,
+          date: ac.timestamp,
+        },
+        type: type,
+      });
+      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+      if (!isLoggerSaved) {
+        res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Alert entries not saved",
+              msg: "Alert entries not saved",
+              type: "MongodbError",
+            },
+          },
+        });
+      }
+    });
 
     // --------------------------------------------------------------------------
-    Promise.all(
-      ack.map(async (ac) => {
-        const putDataIntoLoggerDb = await new modelReference({
-          did: did,
-          ack: {
-            msg: ac.msg,
-            code: ac.code,
-            date: ac.timestamp,
-          },
-          type: type,
-        });
-      })
-    );
+    // Promise.all(
+    //   ack.map(async (ac) => {
+    //     const putDataIntoLoggerDb = await new modelReference({
+    //       did: did,
+    //       ack: {
+    //         msg: ac.msg,
+    //         code: ac.code,
+    //         date: ac.timestamp,
+    //       },
+    //       type: type,
+    //     });
+    //   })
+    // );
     const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     if (!isLoggerSaved) {
       res.status(500).json({
