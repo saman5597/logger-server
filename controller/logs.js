@@ -2,6 +2,7 @@ const Projects = require("../model/project");
 const { getDaysArray } = require("../helper/helperFunctions");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
+const Email = require("../utils/email");
 
 const makeEntriesInDeviceLogger = async (req, res) => {
   try {
