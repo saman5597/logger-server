@@ -10,7 +10,7 @@ const {
 } = require("../helper/helperFunctions");
 const project = require("../model/project");
 const AppError = require("../utils/appError");
-const catchAsync = require("../utils/catchAsync");
+// const catchAsync = require("../utils/catchAsync");
 
 /**
  *
@@ -18,38 +18,23 @@ const catchAsync = require("../utils/catchAsync");
  * @param {*} res
  */
 
-const getAllRegisterProject = catchAsync(
-  async (req, res) => {
-    const allRgisterProject = await Projects.find();
-    return res.status(200).json({
-      status: 1,
-      data: { data: allRgisterProject },
-      message: "Successful",
-    });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: err.stack,
-          msg: err.message,
-          type: err.name,
-        },
-      },
-    });
-  }
-);
-
+const getAllRegisterProject = async (req, res) => {
+  try {
+  } catch (error) {}
+  const allRgisterProject = await Projects.find();
+  return res.status(200).json({
+    status: 1,
+    data: { data: allRgisterProject },
+    message: "Successful",
+  });
+};
 /**
  * api      POST @/project_name
  * desc     To create new project
  */
 
-const createNewProject = catchAsync(
-  async (req, res) => {
+const createNewProject = async (req, res) => {
+  try {
     const { name, description, device_type } = req.body;
     // device type will be  array
     const arrayOfObjects = [];
@@ -57,7 +42,17 @@ const createNewProject = catchAsync(
     const typeCodeArray = [];
 
     if (device_type.length === 0) {
-      throw new AppError(`Please provide atleast one device name!`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Please provide atleast one device name",
+            msg: "Please provide atleast one device name",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     //  loop and set the typecode and enum code
@@ -69,7 +64,17 @@ const createNewProject = catchAsync(
     const isCollectionExist = await checkCollectionName(name + "_collection");
 
     if (isCollectionExist) {
-      throw new AppError(`Project with provided name already exist!!`, 409); // NJ-changes 13 Apr
+      return res.status(409).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project with provided name already exist!!",
+            msg: "Project with provided name already exist!!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const collection_name =
@@ -164,12 +169,18 @@ const createNewProject = catchAsync(
       },
       (err) => {
         if (err) {
-          throw new AppError(
-            `Some error occurred during alert schema creation`,
-            500
-          ); // NJ-changes 13 Apr
+          return res.status(500).json({
+            status: 0,
+            data: {
+              err: {
+                generatedTime: new Date(),
+                errMsg: "Some error occurred during alert schema creation",
+                msg: "Some error occurred during alert schema creation",
+                type: "Internal Server Error",
+              },
+            },
+          });
         }
-        // console.log("File written successfully");
       }
     );
 
@@ -224,10 +235,17 @@ const createNewProject = catchAsync(
       },
       (err) => {
         if (err) {
-          throw new AppError(
-            `Some error occurred during project schema creation`,
-            500
-          ); // NJ-changes 13 Apr
+          return res.status(500).json({
+            status: 0,
+            data: {
+              err: {
+                generatedTime: new Date(),
+                errMsg: "Some error occurred during project schema creation",
+                msg: "Some error occurred during project schema creation",
+                type: "Internal Server Error",
+              },
+            },
+          });
         }
         // console.log("File written successfully");
       }
@@ -238,11 +256,9 @@ const createNewProject = catchAsync(
       data: { savedProject: savedProject },
       message: "Project Saved successfully",
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -253,25 +269,45 @@ const createNewProject = catchAsync(
       },
     });
   }
-);
+};
 
 /**
  * api      GET @api/logger/project/:projectCode
  * @param {project code} req
  * @param {whole project data} res
  */
-const getProjectWithProjectCode = catchAsync(
-  async (req, res) => {
+const getProjectWithProjectCode = async (req, res) => {
+  try {
     const { projectCode } = req.params;
     // if not enter projectCode
 
     if (!projectCode) {
-      throw new AppError(`Project code not provided.`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const getProject = await Projects.findOne({ code: projectCode });
     if (!getProject) {
-      throw new AppError(`Project not found.`, 404); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     res.status(200).json({
@@ -279,11 +315,9 @@ const getProjectWithProjectCode = catchAsync(
       data: { data: getProject },
       message: "Successful",
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -294,7 +328,7 @@ const getProjectWithProjectCode = catchAsync(
       },
     });
   }
-);
+};
 
 /**
  * api      POST @api/logger/updateProjectDetail/:projectCode
@@ -304,8 +338,8 @@ const getProjectWithProjectCode = catchAsync(
  * @param {successful} res
  */
 
-const updateProjectWithProjectCode = catchAsync(
-  async (req, res) => {
+const updateProjectWithProjectCode = async (req, res) => {
+  try {
     const { projectCode } = req.params;
     const { name, description, device_type } = req.body;
 
@@ -314,7 +348,17 @@ const updateProjectWithProjectCode = catchAsync(
     });
 
     if (!getProjectWithProjectCode) {
-      throw new AppError(`We don't have any project with this code!!.`, 404); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     // Add new element to array
@@ -392,10 +436,17 @@ const updateProjectWithProjectCode = catchAsync(
         },
         (err) => {
           if (err) {
-            throw new AppError(
-              `Some error occured during project updation.`,
-              400
-            ); // NJ-changes 13 Apr
+            return res.status(500).json({
+              status: 0,
+              data: {
+                err: {
+                  generatedTime: new Date(),
+                  errMsg: "Can't write file",
+                  msg: "Can't write file",
+                  type: "File system Error",
+                },
+              },
+            });
           }
 
           // console.log("File update failed");
@@ -415,10 +466,17 @@ const updateProjectWithProjectCode = catchAsync(
     const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
     if (!isGetProjectWithProjectCodeSaved) {
-      throw new AppError(
-        `Some error occured during updating the project!!`,
-        500
-      ); // NJ-changes 13 Apr
+      return res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Some error occurred during updating the project!!",
+            msg: "Some error occurred during updating the project!!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     res.status(200).json({
@@ -426,11 +484,9 @@ const updateProjectWithProjectCode = catchAsync(
       data: {},
       message: "Project details Updated!!",
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -441,21 +497,41 @@ const updateProjectWithProjectCode = catchAsync(
       },
     });
   }
-);
+};
 
-const addEmailWithProjectCode = catchAsync(
-  async (req, res) => {
+const addEmailWithProjectCode = async (req, res) => {
+  try {
     const { projectCode } = req.params;
 
     const { email } = req.body;
     if (!email) {
-      throw new AppError(`No email available.`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "No email available.",
+            msg: "No email available.",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     let emailError = [];
     email.map((em) => {
       if (!ValidateHelper.ValidateEmail(em)) {
-        throw new AppError(`Check entered emails.`, 400); // NJ-changes 13 Apr
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Check entered email",
+              msg: "Check entered email",
+              type: "Internal Server Error",
+            },
+          },
+        });
       }
       if (!emailError.includes(em)) {
         emailError.push(em);
@@ -467,7 +543,17 @@ const addEmailWithProjectCode = catchAsync(
     });
 
     if (!getProjectWithProjectCode) {
-      throw new AppError(`Project does not exist.`, 404); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     getProjectWithProjectCode.reportEmail = [...emailError];
@@ -475,10 +561,17 @@ const addEmailWithProjectCode = catchAsync(
     const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
 
     if (!isGetProjectWithProjectCodeSaved) {
-      throw new AppError(
-        `Some error occured during updating the project!!`,
-        500
-      ); // NJ-changes 13 Apr
+      return res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Some error occurred during updating the project!!",
+            msg: "Some error occurred during updating the project!!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const emailList = await Projects.findOne(
@@ -493,11 +586,9 @@ const addEmailWithProjectCode = catchAsync(
       data: emailList,
       message: "Project details Updated!!",
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -508,20 +599,30 @@ const addEmailWithProjectCode = catchAsync(
       },
     });
   }
-);
+};
 
 /**
  * desc     provide log count, logType wise count, log created date
  * api      @/api/logger/projects/getLogsCount/:projectCode
  */
 
-const getDeviceCount = catchAsync(
-  async (req, res) => {
+const getDeviceCount = async (req, res) => {
+  try {
     const { projectCode } = req.params;
 
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      throw new AppError(`Project code invalid`, 404); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const createdAt = projectCollection.createdAt;
@@ -532,7 +633,17 @@ const getDeviceCount = catchAsync(
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
     if (!collectionName) {
-      throw new AppError(`Collection Not Found`, 404); // NJ-changes 13 Apr
+      return res.status(500).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Collection Not Found",
+            msg: "Collection Not Found",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const totalUsers = await collectionName.aggregate([
@@ -561,11 +672,9 @@ const getDeviceCount = catchAsync(
       },
       message: "successfull",
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -576,7 +685,7 @@ const getDeviceCount = catchAsync(
       },
     });
   }
-);
+};
 
 module.exports = {
   createNewProject,

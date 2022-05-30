@@ -2,7 +2,6 @@ const User = require("../model/users");
 
 const redis = require("redis");
 const url = require("url");
-const AppError = require("../utils/appError");
 let redisClient;
 if (process.env.REDISCLOUD_URL) {
   let redisURL = url.parse(process.env.REDISCLOUD_URL);

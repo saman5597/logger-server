@@ -3,8 +3,6 @@ const path = require("path");
 const cors = require("cors");
 const connectDB = require("./config/db.js");
 const morgan = require("morgan");
-const globalErrorController = require('./controller/errorController')
-const AppError = require("./utils/appError.js");
 require("dotenv").config({ path: "./.env" });
 
 // importing router
@@ -41,11 +39,21 @@ app.use("/api/logger/projects", projects);
 // Logs Routing
 app.use("/api/logger/logs", logs);
 // error handling for all routes which are not define
-app.all("*", (req, next) => {
-  next(new AppError(`Can't find ${req.originalUrl} on this server.`, 404));
+app.all("*", (req, res, next) => {
+  res.status(400).json({
+    status: 0,
+    data: {
+      err: {
+        generatedTime: new Date(),
+        errMsg: "No Route Found",
+        msg: "No Route Found",
+        type: "Express Error",
+      },
+    },
+  });
+
+  next();
 });
-// GLOBAL ERROR HANDLING
-app.use(globalErrorController);
 
 const PORT = process.env.PORT || 5000;
 
