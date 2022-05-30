@@ -116,14 +116,190 @@ const makeEntriesInDeviceLogger = async (req, res) => {
   }
 };
 
-const makeEntriesInDeviceLogger1 = (res, req) => {
+const makeEntriesInDeviceLogger1 = async (req, res) => {
   try {
-    console.log("req", req.body);
+    const { project_code } = req.params;
+    // check project exist or not
+    const findProjectWithCode = await Projects.findOne({ code: project_code });
 
-    // res.send(req.file);
-  } catch (error) {
-    console.log("error", error);
-    res.send(400);
+    if (!findProjectWithCode) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project not found",
+            msg: "Project not found",
+            type: "Validation Error",
+          },
+        },
+      });
+    }
+
+    const collectionName = findProjectWithCode.collection_name;
+
+    const modelReference = require(`../model/${collectionName}`);
+
+    if (req.contentType === "json") {
+      const { version, type, log, device } = req.body;
+
+      const Dvc = await new Device({
+        did: device.did,
+        name: device.name,
+        manufacturer: device.manufacturer,
+        os: {
+          name: device.os.name,
+          type: device.os.type,
+        },
+        battery: device.battery,
+      });
+
+      const isDeviceSaved = await Dvc.save(Dvc);
+
+      if (!isDeviceSaved) {
+        res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Device not saved",
+              msg: "Device not saved",
+              type: "MongodbError",
+            },
+          },
+        });
+      }
+
+      const putDataIntoLoggerDb = await new modelReference({
+        version: version,
+        type: type,
+        device: isDeviceSaved._id,
+        log: {
+          file: log.file,
+          date: log.date,
+          filePath: "",
+          message: decodeURI(log.msg),
+          type: log.type,
+        },
+      });
+
+      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+
+      if (!isLoggerSaved) {
+        return res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Project not saved",
+              msg: "Project not saved",
+              type: "Internal Server Error",
+            },
+          },
+        });
+      } else {
+        
+        // if (log.type == "error") {
+        //   findProjectWithCode.reportEmail.map((email) => {
+        //     const url = `${log.msg}`;
+
+        //     new Email(email, url).sendCrash();
+        //   });
+        // }
+
+        res.status(201).json({
+          status: 1,
+          data: { isLoggerSaved },
+          message: "Successful",
+        });
+      }
+
+    } else if (req.contentType === "formData") {
+      const Dvc = await new Device({
+        did: req.body.did,
+        name: req.body.deviceName,
+        manufacturer: req.body.manufacturer,
+        os: {
+          name: req.body.osName,
+          type: req.body.osType,
+        },
+        battery: req.body.battery,
+      });
+
+      const isDeviceSaved = await Dvc.save(Dvc);
+
+      if (!isDeviceSaved) {
+        res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Device not saved",
+              msg: "Device not saved",
+              type: "MongodbError",
+            },
+          },
+        });
+      }
+
+      const putDataIntoLoggerDb = await new modelReference({
+        version: req.body.version,
+        type: req.body.type,
+        device: isDeviceSaved._id,
+        log: {
+          file: req.body.file,
+          date: req.body.date,
+          filePath: `${req.file.destination}/${req.file.originalname}`,
+          message: decodeURI(req.body.logMsg),
+          type: req.body.logType,
+        },
+      });
+
+      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+
+      if (!isLoggerSaved) {
+        return res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Project not saved",
+              msg: "Project not saved",
+              type: "Internal Server Error",
+            },
+          },
+        });
+      } else {
+
+        // if (req.body.logType == "error") {
+        //   findProjectWithCode.reportEmail.map((email) => {
+        //     const url = `${log.msg}`;
+
+        //     new Email(email, url).sendCrash();
+        //   });
+        // }
+
+        res.status(201).json({
+          status: 1,
+          data: { isLoggerSaved },
+          message: "Successful",
+        });
+      }
+
+    }
+
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
   }
 };
 

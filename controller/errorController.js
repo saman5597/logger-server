@@ -19,14 +19,14 @@ const handleValidationErrorDB = (err) => {
 // DEVELOPMENT ENV ERROR
 
 const sendErrorDev = (err, res) => {
-  res.status(err.statusCode).json({
+  res.status(err.statusCode || 500).json({
     status: -1,
     data: {
       err: {
         generatedTime: new Date(),
         errMsg: err.stack,
         msg: err.message,
-        type: err.type,
+        type: err.type || "ServerError",
       },
     },
   });
@@ -38,7 +38,7 @@ const sendErrorProd = (err, res) => {
   // console.log(err)
   // Operational, trusted error: send message to client
   if (err.isOperational) {
-    res.status(err.statusCode).json({
+    res.status(err.statusCode || 500).json({
       status: -1,
       data: {
         err: {
