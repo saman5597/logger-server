@@ -39,6 +39,59 @@ const authDevice = async (req, res, next) => {
   }
 };
 
+const validateHeader = async (req, res, next) => {
+  try {
+    
+    req.contentType = ""
+    if (req.headers["content-type"].includes("application/json")) {
+      if (!req.body.log || !req.body.device) {
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Log details or device details missing.",
+              msg: "Log details or device details missing.",
+              type: "ValidationError",
+            }
+          }
+        });
+      } else req.contentType = "json"
+    }
+
+    if (req.headers["content-type"].includes("multipart/form-data")) {
+      if (!req.file || !req.file["path"]) {
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Log file missing.",
+              msg: "Log file missing.",
+              type: "ValidationError",
+            }
+          }
+        });
+      } else req.contentType = "formData"
+    }
+
+    next();
+  } catch (err) {
+    res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.message,
+          msg: "Internal Server Error.",
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
 module.exports = {
   authDevice,
+  validateHeader
 };

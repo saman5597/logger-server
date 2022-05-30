@@ -29,8 +29,8 @@ app.use(express.static("public"));
 // adding static folder
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(express.json({ limit: "512kb", extended: true }));
-app.use(express.urlencoded({ limit: "512kb", extended: true }));
+app.use(express.json({ limit: "1mb", extended: true }));
+app.use(express.urlencoded({ limit: "1mb", extended: true }));
 
 // Users Routing
 app.use("/api/logger", users);

@@ -1,7 +1,21 @@
 const express = require("express");
+const multer = require("multer");
+var upload = multer({ dest: "public/uploads/" });
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public/uploads");
+  },
+  filename: function (req, file, cb) {
+    console.log(file.originalname)
+    cb(null, file.originalname);
+  },
+});
+var upload = multer({ storage: storage });
 const router = express.Router();
 const {
   makeEntriesInDeviceLogger,
+  makeEntriesInDeviceLogger1,
   makeEntriesInAlertLogger,
   getProjectLogs,
   dateWiseLogCount,
@@ -19,8 +33,11 @@ const {
 
 const { authUser } = require("../middleware/authenticate");
 
+const { validateHeader } = require('../middleware/validate')
+
 // Unprotected
 router.post("/:project_code", makeEntriesInDeviceLogger);
+router.post("/v2/:project_code", upload.single('filePath'), validateHeader, makeEntriesInDeviceLogger1);
 router.post("/alerts/:project_code", makeEntriesInAlertLogger);
 
 //Protected Route

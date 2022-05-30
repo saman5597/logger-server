@@ -14,6 +14,9 @@ const logsSchema = mongoose.Schema(
       type: String,
       required: [true, "Log message is required"],
     },
+    filePath: {
+      type: String
+    },
     type: {
       type: String,
       default: "verbose",

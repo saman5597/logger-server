@@ -98,6 +98,155 @@ const makeEntriesInDeviceLogger = catchAsync(
   }
 );
 
+const makeEntriesInDeviceLogger1 = catchAsync(
+  async (req, res) => {
+    const { project_code } = req.params;
+    // check project exist or not
+    const findProjectWithCode = await Projects.findOne({ code: project_code });
+
+    if (!findProjectWithCode) {
+      throw new AppError(`Project does not exist`, 404); // NJ-changes 13 Apr
+    }
+
+    const collectionName = findProjectWithCode.collection_name;
+
+    const modelReference = require(`../model/${collectionName}`);
+
+    if (req.contentType === "json") {
+
+      const { version, type, log, device } = req.body;
+
+      const Dvc = await new Device({
+        did: device.did,
+        name: device.name,
+        manufacturer: device.manufacturer,
+        os: {
+          name: device.os.name,
+          type: device.os.type,
+        },
+        battery: device.battery,
+      });
+
+      const isDeviceSaved = await Dvc.save(Dvc);
+
+      if (!isDeviceSaved) {
+        return res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Device not saved",
+              msg: "Device not saved",
+              type: "MongodbError",
+            },
+          },
+        });
+      }
+
+      const putDataIntoLoggerDb = await new modelReference({
+        version: version,
+        type: type,
+        device: isDeviceSaved._id,
+        log: {
+          file: log.file,
+          date: log.date,
+          filePath: log.filePath,
+          message: decodeURI(log.msg),
+          type: log.type,
+        },
+      });
+
+      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+
+      if (!isLoggerSaved) {
+        throw new AppError(`Logger entry failed!`, 500);
+      } else {
+        res.status(201).json({
+          status: 1,
+          data: {isLoggerSaved}
+        })
+      }
+
+    } else if (req.contentType === "formData") {
+
+      const Dvc = await new Device({
+        did: req.body.did,
+        name: req.body.deviceName,
+        manufacturer: req.body.manufacturer,
+        os: {
+          name: req.body.osName,
+          type: req.body.osType,
+        },
+        battery: req.body.battery,
+      });
+
+      const isDeviceSaved = await Dvc.save(Dvc);
+
+      if (!isDeviceSaved) {
+        return res.status(500).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Device not saved",
+              msg: "Device not saved",
+              type: "MongodbError",
+            },
+          },
+        });
+      }
+      
+      const putDataIntoLoggerDb = await new modelReference({
+        version: req.body.version,
+        type: req.body.type,
+        device: isDeviceSaved._id,
+        log: {
+          file: req.body.file,
+          date: req.body.date,
+          filePath: `${req.file.destination}/${req.file.originalname}`,
+          message: decodeURI(req.body.logMsg),
+          type: req.body.logType,
+        },
+      });
+
+      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+
+      if (!isLoggerSaved) {
+        throw new AppError(`Logger entry failed!`, 500);
+      } else {
+        res.status(201).json({
+          status: 1,
+          data: {isLoggerSaved}
+        })
+      }
+      
+    }
+
+    // if (log.type == "error") {
+    //   findProjectWithCode.reportEmail.map((email) => {
+    //     const url = `${log.msg}`;
+
+    //     new Email(email, url).sendCrash();
+    //   });
+    // }
+
+  },
+  (err, res) => {
+    return res.status(err.statusCode).json({
+      status: err.status,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+);
+
+
 /**
  * desc     Alert
  * api      POST @/api/logger/logs/alerts/:projectCode
@@ -1060,7 +1209,7 @@ const getLogsCountWithModelName = catchAsync(
     }
 
     const collectionName = require(`../model/${projectCollection.collection_name}.js`);
-    
+
 
     const modelTotalCount = await collectionName.countDocuments();
     const modelNameParticularCount = await collectionName.aggregate([
@@ -1220,6 +1369,7 @@ const getErrorCountByVersion = catchAsync(
 
 module.exports = {
   makeEntriesInDeviceLogger,
+  makeEntriesInDeviceLogger1,
   makeEntriesInAlertLogger,
   getProjectWithFilter,
   getAlertsWithFilter,
