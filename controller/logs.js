@@ -170,6 +170,20 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
         });
       }
 
+      if (!log.msg) {
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: "Log message is reequired",
+              msg: "Log message is required",
+              type: "ValidationError",
+            },
+          },
+        });
+      }
+
       const putDataIntoLoggerDb = await new modelReference({
         version: version,
         type: type,

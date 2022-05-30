@@ -12,7 +12,7 @@ const logsSchema = mongoose.Schema(
     },
     message: {
       type: String,
-      required: [true, "Log message is required"],
+      // required: [true, "Log message is required"],
     },
     filePath: {
       type: String
