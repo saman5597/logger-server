@@ -1,16 +1,10 @@
-const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
-
 const redis = require("redis");
 const url = require("url");
 const { makeId } = require("../helper/helperFunctions");
-
 const JWTR = require("jwt-redis").default;
-
 const Users = require("../model/users");
 const ForgetPassword = require("../model/forgetPassword");
-const AppError = require("../utils/appError");
-const catchAsync = require("../utils/catchAsync");
 const Email = require("../utils/email");
 
 let redisClient;
@@ -28,17 +22,38 @@ const jwtr = new JWTR(redisClient);
  * api      POST @/api/logger/register
  * desc     @register for logger access only
  */
-const registerUser = catchAsync(
-  async (req, res) => {
+const registerUser = async (req, res) => {
+  try {
     const { name, email, password } = req.body;
     const emailTaken = await Users.findOne({ email: email });
 
     if (emailTaken) {
-      throw new AppError(`Email already taken`, 409);
+      // throw new AppError(`Email already taken`, 409);
+      return res.status(409).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Email already taken",
+            msg: "Email already taken",
+            type: "Duplicate Key Error",
+          },
+        },
+      });
     }
 
     if (!email || !name || !password) {
-      throw new AppError(`Please fill all the details.`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Please fill all the details.",
+            msg: "Please fill all the details.",
+            type: "Client Error",
+          },
+        },
+      });
     }
 
     const salt = await bcrypt.genSalt();
@@ -77,11 +92,9 @@ const registerUser = catchAsync(
         },
       });
     }
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -92,7 +105,7 @@ const registerUser = catchAsync(
       },
     });
   }
-);
+};
 
 /**
  *
@@ -101,18 +114,38 @@ const registerUser = catchAsync(
  * @api     POST @/api/logger/login
  */
 
-const loginUser = catchAsync(
-  async (req, res) => {
+const loginUser = async (req, res) => {
+  try {
     const { email, password } = req.body;
 
     if (!email || !password) {
-      throw new AppError(`Email or password missing!`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Email or password missing!",
+            msg: "Email or password missing!",
+            type: "Client Error",
+          },
+        },
+      });
     }
 
     const isUserExist = await Users.findOne({ email: email });
 
     if (!isUserExist) {
-      throw new AppError(`User not available with this email address.`, 404); // NJ-changes 13 Apr
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User not available with this email address.",
+            msg: "User not available with this email address.",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const isPasswordCorrect = await bcrypt.compare(
@@ -121,7 +154,17 @@ const loginUser = catchAsync(
     );
 
     if (!isPasswordCorrect) {
-      throw new AppError(`Password is incorrect.`, 401); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Password is incorrect",
+            msg: "Password is incorrect",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const id = { user: isUserExist._id };
@@ -140,11 +183,9 @@ const loginUser = catchAsync(
         isSuperAdmin: isUserExist.isSuperAdmin,
       },
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -155,16 +196,26 @@ const loginUser = catchAsync(
       },
     });
   }
-);
+};
 
-const updateUserProfile = catchAsync(
-  async (req, res) => {
+const updateUserProfile = async (req, res) => {
+  try {
     const { name } = req.body;
 
     const user = await Users.findOne({ id: req.user.id });
 
     if (!user) {
-      throw new AppError(`User does not found`, 404); // NJ-changes 13 Apr
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User does not found",
+            msg: "User does not found",
+            type: "Mongodb Error",
+          },
+        },
+      });
     }
 
     // store data in DB
@@ -173,7 +224,17 @@ const updateUserProfile = catchAsync(
     const isSaved = await user.save();
 
     if (!isSaved) {
-      throw new AppError(`User profile update fail`, 404); // NJ-changes 13 Apr
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User profile update fail",
+            msg: "User profile update fail",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     return res.status(200).json({
@@ -181,11 +242,9 @@ const updateUserProfile = catchAsync(
       name: isSaved.name,
       avatar: isSaved.image,
     });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -196,16 +255,26 @@ const updateUserProfile = catchAsync(
       },
     });
   }
-);
+};
 
-const userForgetPassword = catchAsync(
-  async (req, res) => {
+const userForgetPassword = async (req, res) => {
+  try {
     const { email } = req.body;
 
     const user = await Users.findOne({ email });
 
     if (!user) {
-      throw new AppError(`Email does not exist!`, 404); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Email does not exist!",
+            msg: "Email does not exist!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const otp = makeId(6);
@@ -239,11 +308,9 @@ const userForgetPassword = catchAsync(
     return res
       .status(200)
       .json({ success: true, message: `Email send to you!` });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -254,30 +321,60 @@ const userForgetPassword = catchAsync(
       },
     });
   }
-);
+};
 
 /**
  * @desc        Reset password
  * @Endpoint    Post @/api/users/resetPasemailsword
  * @access      Token access
  */
-const resetForgetPassword = catchAsync(
-  async (req, res) => {
+const resetForgetPassword = async (req, res) => {
+  try {
     // look for email
     const { email } = req.body;
     if (!email) {
-      throw new AppError(`Provide email`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Provide email",
+            msg: "Provide email",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     // destructure to otp and password
     const { otp, password, passwordVerify } = req.body;
 
     if (!otp || !password || !passwordVerify) {
-      throw new AppError(`Enter all required fields.`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Enter all required fields.",
+            msg: "Enter all required fields.",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     if (password !== passwordVerify) {
-      throw new AppError(`Make sure your password match.`, 401); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Make sure your password match.",
+            msg: "Make sure your password match.",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     // find user using email
@@ -285,15 +382,33 @@ const resetForgetPassword = catchAsync(
     const fp = await ForgetPassword.findOne({ otp });
 
     if (!fp) {
-      throw new AppError(`OTP does not exist!`, 404); // NJ-changes 13 Apr
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "OTP does not exist!",
+            msg: "OTP does not exist!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (isMatch) {
-      throw new AppError(
-        `You cannot set your previous password as new password, Enter new password!`,
-        401
-      ); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg:
+              "You cannot set your previous password as new password, Enter new password!",
+            msg: "You cannot set your previous password as new password, Enter new password!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
 
     if (user.email === fp.email) {
@@ -327,37 +442,21 @@ const resetForgetPassword = catchAsync(
         message: "password reset successfully",
       });
     } else {
-      throw new AppError(`OTP does not match, try again!`, 401); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "OTP does not match, try again!",
+            msg: "OTP does not match, try again!",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
-  },
-  (err, res) => {
+  } catch (err) {
     return res.status(500).json({
       status: -1,
-      data: {
-        err: {
-          generatedTime: new Date(),
-          errMsg: err.message,
-          msg: "Internal Server Error.",
-          type: err.name,
-        },
-      },
-    });
-  }
-);
-
-const logoutUser = catchAsync(
-  async (req, res) => {
-    // const gettoken = req.headers["authorization"].split(" ")[1];
-    await jwtr.destroy(req.jti);
-    return res
-      .status(200)
-      .json({ status: 1, data: {}, message: "Logged out successfully!" });
-    // return res.json({'message':'Logged out successfully!','token':token});
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
       data: {
         err: {
           generatedTime: new Date(),
@@ -368,25 +467,78 @@ const logoutUser = catchAsync(
       },
     });
   }
-);
+};
+
+const logoutUser = async (req, res) => {
+  try {
+    // const gettoken = req.headers["authorization"].split(" ")[1];
+    await jwtr.destroy(req.jti);
+    return res
+      .status(200)
+      .json({ status: 1, data: {}, message: "Logged out successfully!" });
+    // return res.json({'message':'Logged out successfully!','token':token});
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
 
 // update user profile
-const userPasswordChange = catchAsync(
-  async (req, res) => {
+const userPasswordChange = async (req, res) => {
+  try {
     var { currentPassword, newPassword } = req.body;
     // console.log(currentPassword);
 
     //  currentPassword could not be empty -----
     if (!currentPassword) {
-      throw new AppError(`Current password should not be empty`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Current password should not be empty",
+            msg: "Current password should not be empty",
+            type: "Client  Error",
+          },
+        },
+      });
     }
     //  new password could not be empty -----
     if (!newPassword) {
-      throw new AppError(`new password should not be empty`, 400); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "new password should not be empty",
+            msg: "new password should not be empty",
+            type: "Client  Error",
+          },
+        },
+      });
     }
     //  new password should not match current password -----
     if (currentPassword === newPassword) {
-      throw new AppError(`Current and New password should not be same`, 401); // NJ-changes 13 Apr
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Current and New password should not be same`",
+            msg: "Current and New password should not be same`",
+            type: "Client  Error",
+          },
+        },
+      });
     }
 
     const user = await Users.findById(req.user);
@@ -399,7 +551,17 @@ const userPasswordChange = catchAsync(
       user.passwordHash
     );
     if (!passwordCompare) {
-      throw new AppError(`Current password is incorrect`, 401); // NJ-changes 13 Apr
+      return res.status(401).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Current password is incorrect",
+            msg: "Current password is incorrect",
+            type: "Internal Server Error",
+          },
+        },
+      });
     }
     // checking new password and hashing it
     const newPasswordHash = await bcrypt.hash(newPassword, salt);
@@ -411,11 +573,9 @@ const userPasswordChange = catchAsync(
     return res
       .status(200)
       .json({ status: 1, data: {}, message: "Password changed successfully!" });
-  },
-  (err, res) => {
-    // console.log(`Error : ${err.stack}`);
-    return res.status(err.statusCode).json({
-      status: err.status,
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
       data: {
         err: {
           generatedTime: new Date(),
@@ -426,7 +586,7 @@ const userPasswordChange = catchAsync(
       },
     });
   }
-);
+};
 
 module.exports = {
   registerUser,
