@@ -212,14 +212,17 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
           },
         });
       } else {
-        
-        // if (log.type == "error") {
-        //   findProjectWithCode.reportEmail.map((email) => {
-        //     const url = `${log.msg}`;
-
-        //     new Email(email, url).sendCrash();
-        //   });
-        // }
+        if (log.type == "error") {
+          Promise.all(
+            findProjectWithCode.reportEmail.map(async (email) => {
+              return new Promise(async (resolve) => {
+                const url = `${log.msg}`;
+                new Email(email, url).sendCrash();
+                resolve(true);
+              });
+            })
+          );
+        }
 
         res.status(201).json({
           status: 1,
@@ -227,7 +230,6 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
           message: "Successful",
         });
       }
-
     } else if (req.contentType === "formData") {
       const Dvc = await new Device({
         did: req.body.did,
@@ -284,14 +286,17 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
           },
         });
       } else {
-
-        // if (req.body.logType == "error") {
-        //   findProjectWithCode.reportEmail.map((email) => {
-        //     const url = `${log.msg}`;
-
-        //     new Email(email, url).sendCrash();
-        //   });
-        // }
+        if (req.body.logType == "error") {
+          Promise.all(
+            findProjectWithCode.reportEmail.map(async (email) => {
+              return new Promise(async (resolve) => {
+                const url = `${log.msg}`;
+                new Email(email, url).sendCrash();
+                resolve(true);
+              });
+            })
+          );
+        }
 
         res.status(201).json({
           status: 1,
@@ -299,9 +304,7 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
           message: "Successful",
         });
       }
-
     }
-
   } catch (err) {
     return res.status(500).json({
       status: -1,
