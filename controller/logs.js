@@ -263,7 +263,7 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
         log: {
           file: req.body.file,
           date: req.body.date,
-          filePath: `${req.file.destination}${req.file.originalname}`,
+          filePath: req.file.originalname,
           message: decodeURI(req.body.logMsg),
           type: req.body.logType,
         },
