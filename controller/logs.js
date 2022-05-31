@@ -760,6 +760,20 @@ const crashlyticsData = async (req, res) => {
       });
     }
 
+    if (!req.query.logMsg) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Log message not provided.",
+            msg: "Log message not provided.",
+            type: "ValidationError",
+          },
+        },
+      });
+    }
+
     var trimmedLogMsg;
     if (req.query.logMsg.length > 26) {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
@@ -1301,14 +1315,14 @@ const logOccurrences = async (req, res) => {
     }
 
     if (!req.query.logMsg) {
-      return res.status(500).json({
+      return res.status(400).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
             errMsg: "Log message not provided.",
             msg: "Log message not provided.",
-            type: "Internal Server Error",
+            type: "ValidationError",
           },
         },
       });
