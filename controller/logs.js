@@ -179,7 +179,7 @@ const createLogsV2 = async (req, res) => {
           data: {
             err: {
               generatedTime: new Date(),
-              errMsg: "Log message is reequired",
+              errMsg: "Log message is required",
               msg: "Log message is required",
               type: "ValidationError",
             },
@@ -236,12 +236,15 @@ const createLogsV2 = async (req, res) => {
       fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: './public/uploads' }));
 
       const fileNameArr = []
-      const zip = fs.createReadStream(req.file.path).pipe(unzipper.Parse({ forceStream: true }));
 
-      for await (const entry of zip) {
-        fileNameArr.push(entry.path);
-      }
-      console.log(fileNameArr)
+      fs.createReadStream(req.file.path)
+        .pipe(unzipper.Parse())
+        .on('entry', entry => {
+          fileNameArr.push(entry)
+          entry.autodrain()
+        })
+        .promise()
+        .then(() => console.log('Files unzipped'), e => console.log('error', e));
 
       const Dvc = await new Device({
         did: req.body.did,
@@ -271,6 +274,7 @@ const createLogsV2 = async (req, res) => {
       }
 
       let fileNamePromise = fileNameArr.map(async (fileName) => {
+        console.log(fileName.path)
         const putDataIntoLoggerDb = new modelReference({
           version: req.body.version,
           type: req.body.type,
@@ -278,7 +282,7 @@ const createLogsV2 = async (req, res) => {
           log: {
             file: req.body.file,
             date: req.body.date,
-            filePath: fileName,
+            filePath: fileName.path,
             message: "",
             type: req.body.logType,
           },
@@ -288,15 +292,25 @@ const createLogsV2 = async (req, res) => {
 
       let logs = await Promise.allSettled(fileNamePromise);
 
-      if (!logs) {
-        return res.status(500).json({
+      var logsErrArr = []
+      var logsErrMsgArr = []
+
+      logs.map(log => {
+        logsErrArr.push(log.status)
+        if (log.status === "rejected") {
+          logsErrMsgArr.push(log.reason.message)
+        }
+      })
+
+      if (!logsErrArr.includes("fulfilled")) {
+        return res.status(400).json({
           status: 0,
           data: {
             err: {
               generatedTime: new Date(),
-              errMsg: "Project not saved",
-              msg: "Project not saved",
-              type: "Internal Server Error",
+              errMsg: logsErrMsgArr.join(" | "),
+              msg: "Error saving log(s)",
+              type: "ValidationError",
             },
           },
         });
@@ -382,21 +396,32 @@ const createAlerts = async (req, res, next) => {
     });
 
     let alerts = await Promise.allSettled(dbSavePromise);
-    if (alerts) {
+
+    var alertsErrArr = []
+    var alertsErrMsgArr = []
+
+    alerts.map(alert => {
+      alertsErrArr.push(alert.status)
+      if (alert.status === "rejected") {
+        alertsErrMsgArr.push(alert.reason.message)
+      }
+    })
+
+    if (alertsErrArr.includes("fulfilled")) {
       return res.status(201).json({
         status: 1,
         data: { alerts },
         message: "Successful",
       });
     } else {
-      res.status(500).json({
+      res.status(400).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: "Log not saved",
-            msg: "Log not saved",
-            type: "MongodbError",
+            errMsg: alertsErrMsgArr.join(" | "),
+            msg: "Error saving alert(s)",
+            type: "ValidationError",
           },
         },
       });
