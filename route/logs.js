@@ -11,6 +11,7 @@ const storage = multer.diskStorage({
 });
 
 var upload = multer({ storage: storage, limits: { fileSize: maxSize } });
+var uploadFunc = upload.single("filePath")
 const router = express.Router();
 const {
   createLogs,
@@ -38,7 +39,39 @@ const { validateHeader } = require("../middleware/validateMiddleware");
 router.post("/:project_code", createLogs);
 router.post(
   "/v2/:project_code",
-  upload.single("filePath"),
+  function (req, res, next) {
+    uploadFunc(req, res, function (err) {
+      if (err instanceof multer.MulterError) {
+        // A Multer error occurred when uploading.
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+            },
+          },
+        });
+      } else if (err) {
+        // An unknown error occurred when uploading.
+        return res.status(500).json({
+          status: -1,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: err.stack,
+              msg: err.message,
+              type: err.name,
+            },
+          },
+        });
+      }
+      // Everything went fine.
+      next()
+    })
+  },
   validateHeader,
   createLogsV2
 );

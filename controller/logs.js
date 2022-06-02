@@ -3,6 +3,9 @@ const { getDaysArray } = require("../helper/helperFunctions");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
 const Email = require("../utils/email");
+const unzipper = require('unzipper');
+const fs = require('fs');
+const fstream = require('fstream')
 
 const createLogs = async (req, res) => {
   try {
@@ -212,7 +215,7 @@ const createLogsV2 = async (req, res) => {
           },
         });
       } else {
-        
+
         // if (log.type == "error") {
         //   findProjectWithCode.reportEmail.map((email) => {
         //     const url = `${log.msg}`;
@@ -229,6 +232,17 @@ const createLogsV2 = async (req, res) => {
       }
 
     } else if (req.contentType === "formData") {
+
+      fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: './public/uploads' }));
+
+      const fileNameArr = []
+      const zip = fs.createReadStream(req.file.path).pipe(unzipper.Parse({ forceStream: true }));
+
+      for await (const entry of zip) {
+        fileNameArr.push(entry.path);
+      }
+      console.log(fileNameArr)
+
       const Dvc = await new Device({
         did: req.body.did,
         name: req.body.deviceName,
@@ -256,22 +270,25 @@ const createLogsV2 = async (req, res) => {
         });
       }
 
-      const putDataIntoLoggerDb = await new modelReference({
-        version: req.body.version,
-        type: req.body.type,
-        device: isDeviceSaved._id,
-        log: {
-          file: req.body.file,
-          date: req.body.date,
-          filePath: req.file.originalname,
-          message: decodeURI(req.body.logMsg),
-          type: req.body.logType,
-        },
+      let fileNamePromise = fileNameArr.map(async (fileName) => {
+        const putDataIntoLoggerDb = new modelReference({
+          version: req.body.version,
+          type: req.body.type,
+          device: isDeviceSaved._id,
+          log: {
+            file: req.body.file,
+            date: req.body.date,
+            filePath: fileName,
+            message: "",
+            type: req.body.logType,
+          },
+        });
+        return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
       });
 
-      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+      let logs = await Promise.allSettled(fileNamePromise);
 
-      if (!isLoggerSaved) {
+      if (!logs) {
         return res.status(500).json({
           status: 0,
           data: {
@@ -295,7 +312,7 @@ const createLogsV2 = async (req, res) => {
 
         res.status(201).json({
           status: 1,
-          data: { isLoggerSaved },
+          data: { logs },
           message: "Successful",
         });
       }
@@ -364,11 +381,11 @@ const createAlerts = async (req, res, next) => {
       return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     });
 
-    let isLoggerSaved = await Promise.allSettled(dbSavePromise);
-    if (isLoggerSaved) {
+    let alerts = await Promise.allSettled(dbSavePromise);
+    if (alerts) {
       return res.status(201).json({
         status: 1,
-        data: {},
+        data: { alerts },
         message: "Successful",
       });
     } else {
