@@ -38,7 +38,7 @@ const deviceSchema = mongoose.Schema(
       },
     },
     battery: {
-      type: String,
+      type: Number,
       default: null,
       min: 0,
       max: 100,

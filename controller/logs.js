@@ -272,6 +272,8 @@ const createLogsV2 = async (req, res) => {
           },
         });
       }
+      
+      const d = new Date();
 
       let fileNamePromise = fileNameArr.map(async (fileName) => {
         console.log(fileName.path)
@@ -280,11 +282,11 @@ const createLogsV2 = async (req, res) => {
           type: req.body.type,
           device: isDeviceSaved._id,
           log: {
-            file: req.body.file,
-            date: req.body.date,
-            filePath: fileName.path,
+            file: fileName.path,
+            date: d.toISOString(),
+            filePath: `uploads/${fileName.path}`,
             message: "",
-            type: req.body.logType,
+            type: "error",
           },
         });
         return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
