@@ -226,7 +226,7 @@ const createLogsV2 = async (req, res) => {
 
         res.status(201).json({
           status: 1,
-          data: { isLoggerSaved },
+          data: { log : isLoggerSaved },
           message: "Successful",
         });
       }
