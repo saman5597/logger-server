@@ -13,8 +13,8 @@ const {
 } = require('../controller/users.js')
 
 const {
-    authUser
-} = require('../middleware/authenticate')
+    isAuth
+} = require('../middleware/authMiddleware')
 
 
 // AUTH Route
@@ -27,11 +27,11 @@ router.post("/auth/forget", userForgetPassword);
 router.post("/auth/resetPassword", resetForgetPassword);
 
 // Protected
-router.get('/auth/logout',authUser,logoutUser)
+router.get('/auth/logout',isAuth,logoutUser)
 
 // USERS Route
 // Protected Route
-router.put('/users/update',authUser,updateUserProfile)
-router.put("/users/changepassword", authUser, userPasswordChange);
+router.put('/users/update',isAuth,updateUserProfile)
+router.put("/users/changepassword", isAuth, userPasswordChange);
 
 module.exports = router;

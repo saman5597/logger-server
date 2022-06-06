@@ -2,23 +2,23 @@ const express = require('express')
 const router = express.Router();
 const {
     createNewProject,
-    getAllRegisterProject,
+    getAllRegisteredProjects,
     getProjectWithProjectCode,
     updateProjectWithProjectCode,
     addEmailWithProjectCode,
-    getDeviceCount,
+    getProjectDetails,
     
 } = require('../controller/project');
 
-const {authUser,restrictToRole} = require('../middleware/authenticate');
-const { authDevice } = require('../middleware/validate');
+const {isAuth,isSuperAdmin} = require('../middleware/authMiddleware');
+const { isDeviceRegistered } = require('../middleware/validateMiddleware');
 
 // Protected
-router.get('/',authUser,getAllRegisterProject);
-router.post('/',authUser,restrictToRole,createNewProject)
-router.get('/:projectCode',authUser, getProjectWithProjectCode)
-router.put('/:projectCode',authUser, updateProjectWithProjectCode)
+router.get('/',isAuth,getAllRegisteredProjects);
+router.post('/',isAuth,isSuperAdmin,createNewProject)
+router.get('/getDeviceCount/:projectCode',isAuth,getProjectDetails)
+router.get('/:projectCode',isAuth, getProjectWithProjectCode)
+router.put('/:projectCode',isAuth, updateProjectWithProjectCode)
 router.put('/updateEmail/:projectCode', addEmailWithProjectCode)
-router.get('/getDeviceCount/:projectCode',authUser,getDeviceCount)
 
 module.exports = router;

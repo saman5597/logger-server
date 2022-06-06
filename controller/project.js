@@ -18,7 +18,7 @@ const AppError = require("../utils/appError");
  * @param {*} res
  */
 
-const getAllRegisterProject = async (req, res) => {
+const getAllRegisteredProjects = async (req, res) => {
   try {
   } catch (error) {}
   const allRgisterProject = await Projects.find();
@@ -606,7 +606,7 @@ const addEmailWithProjectCode = async (req, res) => {
  * api      @/api/logger/projects/getLogsCount/:projectCode
  */
 
-const getDeviceCount = async (req, res) => {
+const getProjectDetails = async (req, res) => {
   try {
     const { projectCode } = req.params;
 
@@ -689,10 +689,10 @@ const getDeviceCount = async (req, res) => {
 
 module.exports = {
   createNewProject,
-  getAllRegisterProject,
+  getAllRegisteredProjects,
 
   getProjectWithProjectCode,
   updateProjectWithProjectCode,
   addEmailWithProjectCode,
-  getDeviceCount,
+  getProjectDetails,
 };

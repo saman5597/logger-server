@@ -3,8 +3,11 @@ const { getDaysArray } = require("../helper/helperFunctions");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
 const Email = require("../utils/email");
+const unzipper = require('unzipper');
+const fs = require('fs');
+const fstream = require('fstream')
 
-const makeEntriesInDeviceLogger = async (req, res) => {
+const createLogs = async (req, res) => {
   try {
     const { project_code } = req.params;
     // check project exist or not
@@ -116,7 +119,7 @@ const makeEntriesInDeviceLogger = async (req, res) => {
   }
 };
 
-const makeEntriesInDeviceLogger1 = async (req, res) => {
+const createLogsV2 = async (req, res) => {
   try {
     const { project_code } = req.params;
     // check project exist or not
@@ -176,7 +179,7 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
           data: {
             err: {
               generatedTime: new Date(),
-              errMsg: "Log message is reequired",
+              errMsg: "Log message is required",
               msg: "Log message is required",
               type: "ValidationError",
             },
@@ -231,6 +234,20 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
         });
       }
     } else if (req.contentType === "formData") {
+
+      fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: './public/uploads' }));
+
+      const fileNameArr = []
+
+      fs.createReadStream(req.file.path)
+        .pipe(unzipper.Parse())
+        .on('entry', entry => {
+          fileNameArr.push(entry)
+          entry.autodrain()
+        })
+        .promise()
+        .then(() => console.log('Files unzipped'), e => console.log('error', e));
+
       const Dvc = await new Device({
         did: req.body.did,
         name: req.body.deviceName,
@@ -258,30 +275,44 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
         });
       }
 
-      const putDataIntoLoggerDb = await new modelReference({
-        version: req.body.version,
-        type: req.body.type,
-        device: isDeviceSaved._id,
-        log: {
-          file: req.body.file,
-          date: req.body.date,
-          filePath: `${req.file.destination}/${req.file.originalname}`,
-          message: decodeURI(req.body.logMsg),
-          type: req.body.logType,
-        },
+      let fileNamePromise = fileNameArr.map(async (fileName) => {
+        console.log(fileName.path)
+        const putDataIntoLoggerDb = new modelReference({
+          version: req.body.version,
+          type: req.body.type,
+          device: isDeviceSaved._id,
+          log: {
+            file: req.body.file,
+            date: req.body.date,
+            filePath: fileName.path,
+            message: "",
+            type: req.body.logType,
+          },
+        });
+        return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
       });
 
-      const isLoggerSaved = await putDataIntoLoggerDb.save(putDataIntoLoggerDb);
+      let logs = await Promise.allSettled(fileNamePromise);
 
-      if (!isLoggerSaved) {
-        return res.status(500).json({
+      var logsErrArr = []
+      var logsErrMsgArr = []
+
+      logs.map(log => {
+        logsErrArr.push(log.status)
+        if (log.status === "rejected") {
+          logsErrMsgArr.push(log.reason.message)
+        }
+      })
+
+      if (!logsErrArr.includes("fulfilled")) {
+        return res.status(400).json({
           status: 0,
           data: {
             err: {
               generatedTime: new Date(),
-              errMsg: "Project not saved",
-              msg: "Project not saved",
-              type: "Internal Server Error",
+              errMsg: logsErrMsgArr.join(" | "),
+              msg: "Error saving log(s)",
+              type: "ValidationError",
             },
           },
         });
@@ -300,7 +331,7 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
 
         res.status(201).json({
           status: 1,
-          data: { isLoggerSaved },
+          data: { logs },
           message: "Successful",
         });
       }
@@ -324,7 +355,7 @@ const makeEntriesInDeviceLogger1 = async (req, res) => {
  * desc     Alert
  * api      POST @/api/logger/logs/alerts/:projectCode
  */
-const makeEntriesInAlertLogger = async (req, res, next) => {
+const createAlerts = async (req, res, next) => {
   try {
     const { project_code } = req.params;
     // check project exist or not
@@ -367,22 +398,33 @@ const makeEntriesInAlertLogger = async (req, res, next) => {
       return putDataIntoLoggerDb.save(putDataIntoLoggerDb);
     });
 
-    let isLoggerSaved = await Promise.allSettled(dbSavePromise);
-    if (isLoggerSaved) {
+    let alerts = await Promise.allSettled(dbSavePromise);
+
+    var alertsErrArr = []
+    var alertsErrMsgArr = []
+
+    alerts.map(alert => {
+      alertsErrArr.push(alert.status)
+      if (alert.status === "rejected") {
+        alertsErrMsgArr.push(alert.reason.message)
+      }
+    })
+
+    if (alertsErrArr.includes("fulfilled")) {
       return res.status(201).json({
         status: 1,
-        data: {},
+        data: { alerts },
         message: "Successful",
       });
     } else {
-      res.status(500).json({
+      res.status(400).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: "Log not saved",
-            msg: "Log not saved",
-            type: "MongodbError",
+            errMsg: alertsErrMsgArr.join(" | "),
+            msg: "Error saving alert(s)",
+            type: "ValidationError",
           },
         },
       });
@@ -763,6 +805,20 @@ const crashlyticsData = async (req, res) => {
       });
     }
 
+    if (!req.query.logMsg) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Log message not provided.",
+            msg: "Log message not provided.",
+            type: "ValidationError",
+          },
+        },
+      });
+    }
+
     var trimmedLogMsg;
     if (req.query.logMsg.length > 26) {
       trimmedLogMsg = req.query.logMsg.substring(0, 26);
@@ -971,7 +1027,7 @@ const getErrorCountByOSArchitecture = async (req, res) => {
     });
   }
 };
-const getProjectLogs = async (req, res) => {
+const getLogsByLogType = async (req, res) => {
   try {
     const { projectCode } = req.params;
     const isProjectExist = await Projects.findOne({ code: projectCode });
@@ -1087,7 +1143,7 @@ const getProjectLogs = async (req, res) => {
   }
 };
 
-const dateWiseLogCount = async (req, res) => {
+const dateWiseCrashCount = async (req, res) => {
   try {
     const { projectCode } = req.params;
 
@@ -1257,7 +1313,7 @@ const dateWiseLogCount = async (req, res) => {
   }
 };
 
-const logOccurrences = async (req, res) => {
+const dateWiseLogOccurrencesByLogMsg = async (req, res) => {
   try {
     const { projectCode } = req.params;
 
@@ -1304,14 +1360,14 @@ const logOccurrences = async (req, res) => {
     }
 
     if (!req.query.logMsg) {
-      return res.status(500).json({
+      return res.status(400).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
             errMsg: "Log message not provided.",
             msg: "Log message not provided.",
-            type: "Internal Server Error",
+            type: "ValidationError",
           },
         },
       });
@@ -1571,7 +1627,7 @@ const getLogsCountWithModelName = async (req, res) => {
   }
 };
 
-const getlogMsgOccurence = async (req, res) => {
+const getCrashOccurrenceByLogMsg = async (req, res) => {
   try {
     const { projectCode } = req.params;
 
@@ -1746,19 +1802,19 @@ const getErrorCountByVersion = async (req, res) => {
 };
 
 module.exports = {
-  makeEntriesInDeviceLogger,
-  makeEntriesInDeviceLogger1,
-  makeEntriesInAlertLogger,
+  createLogs,
+  createLogsV2,
+  createAlerts,
   getProjectWithFilter,
   getAlertsWithFilter,
   crashFreeUsersDatewise,
   crashlyticsData,
   getErrorCountByOSArchitecture,
-  getProjectLogs,
-  dateWiseLogCount,
-  logOccurrences,
+  getLogsByLogType,
+  dateWiseCrashCount,
+  dateWiseLogOccurrencesByLogMsg,
   getLogsCountWithOs,
   getLogsCountWithModelName,
-  getlogMsgOccurence,
+  getCrashOccurrenceByLogMsg,
   getErrorCountByVersion,
 };

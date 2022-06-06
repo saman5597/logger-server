@@ -1,6 +1,6 @@
 const { checkMD5 } = require("../helper/helperFunctions.js");
 
-const authDevice = async (req, res, next) => {
+const isDeviceRegistered = async (req, res, next) => {
   try {
     if (!req.headers["authorization"])
       throw { message: "Provide device authorization" };
@@ -120,6 +120,6 @@ const validateHeader = async (req, res, next) => {
 };
 
 module.exports = {
-  authDevice,
+  isDeviceRegistered,
   validateHeader,
 };
