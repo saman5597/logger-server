@@ -306,12 +306,12 @@ const createLogsV2 = async (req, res) => {
 
       if (!logsErrArr.includes("fulfilled")) {
         return res.status(400).json({
-          status: 0,
+          status: -1,
           data: {
             err: {
               generatedTime: new Date(),
               errMsg: logsErrMsgArr.join(" | "),
-              msg: "Error saving log(s)",
+              msg: `Error saving ${logsErrMsgArr.length} out of ${logs.length} log(s)`,
               type: "ValidationError",
             },
           },
@@ -409,7 +409,7 @@ const createAlerts = async (req, res, next) => {
       }
     })
 
-    if (alertsErrArr.includes("fulfilled")) {
+    if (!alertsErrArr.includes("rejected")) {
       return res.status(201).json({
         status: 1,
         data: { alerts },
@@ -417,12 +417,12 @@ const createAlerts = async (req, res, next) => {
       });
     } else {
       res.status(400).json({
-        status: 0,
+        status: -1,
         data: {
           err: {
             generatedTime: new Date(),
             errMsg: alertsErrMsgArr.join(" | "),
-            msg: "Error saving alert(s)",
+            msg: `Error saving ${alertsErrMsgArr.length} out of ${alerts.length} alert(s)`,
             type: "ValidationError",
           },
         },
