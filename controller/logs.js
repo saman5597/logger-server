@@ -143,6 +143,8 @@ const createLogsV2 = async (req, res) => {
 
     const modelReference = require(`../model/${collectionName}`);
 
+    const d = new Date();
+
     if (req.contentType === "json") {
       const { version, type, log, device } = req.body;
 
@@ -193,7 +195,7 @@ const createLogsV2 = async (req, res) => {
         device: isDeviceSaved._id,
         log: {
           file: log.file,
-          date: log.date,
+          date: log.date || d.toISOString(),
           filePath: "",
           message: decodeURI(log.msg),
           type: log.type,
@@ -272,8 +274,6 @@ const createLogsV2 = async (req, res) => {
           },
         });
       }
-      
-      const d = new Date();
 
       let fileNamePromise = fileNameArr.map(async (fileName) => {
         console.log(fileName.path)
