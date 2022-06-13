@@ -5,7 +5,7 @@ const redisClient = require('../config/redisInit');
 module.exports = (lifetime) => {
     return function cache (req, res, next){
 
-        let key = "__logcat__" + req.url
+        let key = "__logcat__" + req.originalUrl || req.url
         console.log(key)
         // let cachedResponse = mcache.get(key)
         redisClient.get(key, (err, cachedResponse) => {
