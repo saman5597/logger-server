@@ -8,7 +8,7 @@ module.exports = class Email {
     this.firstName = user.split("@")[0];
     this.url = url;
     this.from = `LogCat  <${process.env.MAIL_FROM}>`;
-    console.log("user", user, url);
+    // console.log("user", user, url);
   }
 
   newTransport() {
@@ -40,7 +40,7 @@ module.exports = class Email {
       }
     );
 
-    console.log("html", html);
+    // console.log("html", html);
 
     // 2) Define email options
     const mailOptions = {
@@ -51,14 +51,14 @@ module.exports = class Email {
       text: htmlToText.fromString(html),
     };
 
-    console.log("mailOptions", mailOptions);
+    // console.log("mailOptions", mailOptions);
 
     // 3) Create a transport and send email
     await this.newTransport().sendMail(mailOptions, (err, info) => {
       if (err) {
         console.log("error", err);
       }
-      console.log("info", info);
+      // console.log("info", info);
     });
   }
 
@@ -66,8 +66,8 @@ module.exports = class Email {
     await this.send("welcome", "Welcome to LogCat!");
   }
 
-  async sendCrash() {
-    await this.send("crash", "Crash Notification: LogCat");
+  sendCrash() {
+    this.send("crash", "Crash Notification: LogCat");
   }
 
   async forgetPassword() {

@@ -32,11 +32,15 @@ const {
 } = require("../controller/logs");
 
 const { isAuth } = require("../middleware/authMiddleware");
+const cache = require("../middleware/cache");
 
 const { validateHeader } = require("../middleware/validateMiddleware");
 
 // Unprotected
+
+// This route will be replaced by createLogsV2 
 router.post("/:project_code", createLogs);
+
 router.post(
   "/v2/:project_code",
   function (req, res, next) {
@@ -78,7 +82,7 @@ router.post(
 router.post("/alerts/:project_code", createAlerts);
 
 //Protected Route
-router.get("/:projectCode", isAuth, getProjectWithFilter);
+router.get("/:projectCode", isAuth, cache(10), getProjectWithFilter);
 router.get("/getLogsCount/:projectCode", isAuth, getLogsByLogType);
 router.get("/datewiselogcount/:projectCode", isAuth, dateWiseCrashCount);
 router.get(

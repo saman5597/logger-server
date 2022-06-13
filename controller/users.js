@@ -1,22 +1,11 @@
 const bcrypt = require("bcrypt");
-const redis = require("redis");
-const url = require("url");
 const { makeId } = require("../helper/helperFunctions");
 const JWTR = require("jwt-redis").default;
 const Users = require("../model/users");
 const ForgetPassword = require("../model/forgetPassword");
 const Email = require("../utils/email");
+let redisClient = require("../config/redisInit");
 
-let redisClient;
-if (process.env.REDISCLOUD_URL) {
-  let redisURL = url.parse(process.env.REDISCLOUD_URL);
-  redisClient = redis.createClient(redisURL.port, redisURL.hostname, {
-    no_ready_check: true,
-  });
-  redisClient.auth(redisURL.auth.split(":")[1]);
-} else {
-  redisClient = redis.createClient();
-}
 const jwtr = new JWTR(redisClient);
 /**
  * api      POST @/api/logger/register

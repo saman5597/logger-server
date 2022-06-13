@@ -5,8 +5,8 @@ const QueryHelper = require("../helper/queryHelper");
 const Email = require("../utils/email");
 const unzipper = require('unzipper');
 const fs = require('fs');
-const fstream = require('fstream')
 
+// This function will be replaced by createLogsV2 
 const createLogs = async (req, res) => {
   try {
     const { project_code } = req.params;
@@ -218,24 +218,44 @@ const createLogsV2 = async (req, res) => {
         });
       } else {
 
-        // if (log.type == "error") {
-        //   findProjectWithCode.reportEmail.map((email) => {
-        //     const url = `${log.msg}`;
+        var sentEmails = []
+        var sentEmailErrArr = []
+        var sentEmailErrMsgArr = []
 
-        //     new Email(email, url).sendCrash();
-        //   });
-        // }
+        if (log.type == "error") {
+
+          let emailPromise = findProjectWithCode.reportEmail.map(async (email) => {
+            const url = `${log.msg}`;
+            // console.log(url)
+            return new Email(email, url).sendCrash();
+          });
+      
+          sentEmails = await Promise.allSettled(emailPromise);
+
+          sentEmails.map(sentEmail => {
+            sentEmailErrArr.push(sentEmail.status)
+            if (sentEmail.status === "rejected") {
+              sentEmailErrMsgArr.push(sentEmail.reason.message)
+            }
+          })
+        }
 
         res.status(201).json({
           status: 1,
-          data: { log : isLoggerSaved },
+          data: {  
+            crashEmail : log.type === "error" ? {
+              status: sentEmailErrArr.includes("rejected") ? 0 : 1,
+              errMsg: sentEmailErrMsgArr.length ? sentEmailErrMsgArr.join(" | ") : "",
+              msg: sentEmailErrMsgArr.length ? `Error sending ${sentEmailErrMsgArr.length} out of ${sentEmails.length} log(s)` : "Email(s) sent successfully."
+            } : {}
+          },
           message: "Successful",
         });
       }
 
     } else if (req.contentType === "formData") {
 
-      fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: './public/uploads' }));
+      fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: `./public/uploads/${req.body.did}` }));
 
       const fileNameArr = []
 
@@ -284,7 +304,7 @@ const createLogsV2 = async (req, res) => {
           log: {
             file: fileName.path,
             date: d.toISOString(),
-            filePath: `uploads/${fileName.path}`,
+            filePath: `uploads/${req.body.did}/${fileName.path}`,
             message: "",
             type: "error",
           },
@@ -306,7 +326,7 @@ const createLogsV2 = async (req, res) => {
 
       if (!logsErrArr.includes("fulfilled")) {
         return res.status(400).json({
-          status: -1,
+          status: logsErrMsgArr.length === logs.length ? -1 : 0,
           data: {
             err: {
               generatedTime: new Date(),
@@ -318,17 +338,34 @@ const createLogsV2 = async (req, res) => {
         });
       } else {
 
-        // if (req.body.logType == "error") {
-        //   findProjectWithCode.reportEmail.map((email) => {
-        //     const url = `${log.msg}`;
+        let emailPromise = findProjectWithCode.reportEmail.map(async (email) => {
+          logs.map(log => {
+            const url = `${log.value.log.filePath}`;
+            // console.log(url)
+            return new Email(email, url).sendCrash();
+          })
+        });
+    
+        let sentEmails = await Promise.allSettled(emailPromise);
+        
+        var sentEmailErrArr = []
+        var sentEmailErrMsgArr = []
 
-        //     new Email(email, url).sendCrash();
-        //   });
-        // }
+        sentEmails.map(sentEmail => {
+          sentEmailErrArr.push(sentEmail.status)
+          if (sentEmail.status === "rejected") {
+            sentEmailErrMsgArr.push(sentEmail.reason.message)
+          }
+        })
 
         res.status(201).json({
           status: 1,
-          data: { logs },
+          data: {  
+            crashEmail: {
+              status: sentEmailErrArr.includes("rejected") ? 0 : 1,
+              errMsg: sentEmailErrMsgArr.length ? sentEmailErrMsgArr.join(" | ") : "",
+              msg: sentEmailErrMsgArr.length ? `Error sending ${sentEmailErrMsgArr.length} out of ${sentEmails.length} log(s)` : "Email(s) sent successfully."
+          }},
           message: "Successful",
         });
       }
@@ -412,12 +449,12 @@ const createAlerts = async (req, res, next) => {
     if (!alertsErrArr.includes("rejected")) {
       return res.status(201).json({
         status: 1,
-        data: { alerts },
+        data: { alertCount : alerts.length },
         message: "Successful",
       });
     } else {
       res.status(400).json({
-        status: -1,
+        status: alertsErrArr.length === alerts.length ? -1 : 0,
         data: {
           err: {
             generatedTime: new Date(),
@@ -958,6 +995,7 @@ const crashlyticsData = async (req, res) => {
   }
 };
 
+// UNUSED
 const getErrorCountByOSArchitecture = async (req, res) => {
   try {
     const { projectCode } = req.params;
@@ -1481,6 +1519,7 @@ const dateWiseLogOccurrencesByLogMsg = async (req, res) => {
   }
 };
 
+// UNUSED
 const getLogsCountWithOs = async (req, res) => {
   try {
     const { projectCode } = req.params;
@@ -1554,6 +1593,7 @@ const getLogsCountWithOs = async (req, res) => {
   }
 };
 
+// UNUSED
 const getLogsCountWithModelName = async (req, res) => {
   try {
     const { projectCode } = req.params;
@@ -1738,6 +1778,8 @@ const getCrashOccurrenceByLogMsg = async (req, res) => {
     });
   }
 };
+
+// UNUSED
 const getErrorCountByVersion = async (req, res) => {
   try {
     const { projectCode } = req.params;

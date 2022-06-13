@@ -18,11 +18,6 @@ const deviceSchema = mongoose.Schema(
       type: String,
       required: [true, "Device name is required."],
     },
-    code: {
-      type: String,
-      //   required: [true, "Device code is required."],
-      default: null,
-    },
     manufacturer: {
       type: String,
     },
