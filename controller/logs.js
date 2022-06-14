@@ -626,7 +626,7 @@ const getAlertsWithFilter = async (req, res) => {
 
     // Sending type name instead of type code
 
-    return res.header("Cache-Control", "max-age=2592000").status(200).json({ //30days (60sec * 60min * 24hours * 30days)
+    return res.status(200).json({ 
       status: 1,
       message: "Getting all alerts",
       data: {
