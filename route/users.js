@@ -10,6 +10,7 @@ const {
     userForgetPassword,
     resetForgetPassword,
     userPasswordChange,
+    getUserByUserId
 } = require('../controller/users.js')
 
 const {
@@ -31,6 +32,7 @@ router.get('/auth/logout',isAuth,logoutUser)
 
 // USERS Route
 // Protected Route
+router.get('/users', isAuth, getUserByUserId)
 router.put('/users/update',isAuth,updateUserProfile)
 router.put("/users/changepassword", isAuth, userPasswordChange);
 

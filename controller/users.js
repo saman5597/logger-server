@@ -577,6 +577,45 @@ const userPasswordChange = async (req, res) => {
   }
 };
 
+const getUserByUserId = async (req, res) => {
+  try {
+    
+    const user = await Users.findById(req.user).select('-passwordHash')
+
+    if (!user) {
+      return res.status(404).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "User not found",
+            msg: "User not found",
+            type: "MongoDBError",
+          },
+        },
+      });
+    }
+
+    res.status(200).json({
+      status: 1,
+      data: { user },
+      message: "Successful",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: -1,
+      data: {
+        err: {
+          generatedTime: new Date(),
+          errMsg: err.stack,
+          msg: err.message,
+          type: err.name,
+        },
+      },
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -585,4 +624,5 @@ module.exports = {
   userForgetPassword,
   resetForgetPassword,
   userPasswordChange,
+  getUserByUserId
 };
