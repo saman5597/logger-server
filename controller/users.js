@@ -190,9 +190,7 @@ const loginUser = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const { name } = req.body;
-
-    const user = await Users.findOne({ id: req.user.id });
-
+    const user = await Users.findById(req.user)
     if (!user) {
       return res.status(404).json({
         status: 0,
@@ -213,7 +211,7 @@ const updateUserProfile = async (req, res) => {
     const isSaved = await user.save();
 
     if (!isSaved) {
-      return res.status(404).json({
+      return res.status(500).json({
         status: 0,
         data: {
           err: {
