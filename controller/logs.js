@@ -547,7 +547,11 @@ const getProjectWithFilter = async (req, res) => {
     }
     let logMatch = req.query.logType
     logMatch ? matchOperator["$match"]["log.type"] = logMatch : delete matchOperator["$match"]["log.type"]
-
+    
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 500;
+    let skip = (page - 1) * limit;
+    
     const data = await collectionName.aggregate(
       [
         {
@@ -561,8 +565,8 @@ const getProjectWithFilter = async (req, res) => {
             "data": [
               matchOperator,
               sortOperator,
-              { $skip: ((parseInt(req.query.page) - 1) * parseInt(req.query.limit)) || 1 },
-              { $limit: parseInt(req.query.limit) || 500 }
+              { $skip: skip },
+              { $limit: limit }
             ]
           }
         }
@@ -651,6 +655,10 @@ const getAlertsWithFilter = async (req, res) => {
       }
     }
 
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 500;
+    let skip = (page - 1) * limit;
+
     const data = await collectionName.aggregate(
       [
         {
@@ -664,8 +672,8 @@ const getAlertsWithFilter = async (req, res) => {
             "data": [
               matchOperator,
               sortOperator,
-              { $skip: ((parseInt(req.query.page) - 1) * parseInt(req.query.limit)) || 1 },
-              { $limit: parseInt(req.query.limit) || 500 }
+              { $skip: skip },
+              { $limit: limit }
             ]
           }
         }
