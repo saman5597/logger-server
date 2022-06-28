@@ -572,6 +572,9 @@ const getProjectWithFilter = async (req, res) => {
                   as: "device",
                 },
               },
+              {
+                $unwind: "$device",
+              },
               sortOperator,
               { $skip: skip },
               { $limit: limit }
