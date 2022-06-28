@@ -3,8 +3,9 @@ const { getDaysArray } = require("../helper/helperFunctions");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
 const Email = require("../utils/email");
-const unzipper = require('unzipper');
-const fs = require('fs');
+// const unzipper = require('unzipper');
+// const fs = require('fs');
+const decompress = require('decompress');
 
 // This function will be replaced by createLogsV2 
 const createLogs = async (req, res) => {
@@ -143,6 +144,8 @@ const createLogsV2 = async (req, res) => {
 
     const modelReference = require(`../model/${collectionName}`);
 
+    const totalCount = await modelReference.estimatedDocumentCount({})
+
     const d = new Date();
 
     if (req.contentType === "json") {
@@ -222,28 +225,33 @@ const createLogsV2 = async (req, res) => {
         var sentEmailErrArr = []
         var sentEmailErrMsgArr = []
 
-        if (log.type == "error") {
+        findProjectWithCode.totalCount = totalCount + 1;
 
-          let emailPromise = findProjectWithCode.reportEmail.map(async (email) => {
+        const updatedProjectData = await findProjectWithCode.save();
+
+        if (log.type == "error" && findProjectWithCode.reportEmail.length) {
+
+
+          let emailPromise = findProjectWithCode.reportEmail.map((email) => {
             const url = `${log.msg}`;
             // console.log(url)
             return new Email(email, url).sendCrash();
           });
-      
+
           sentEmails = await Promise.allSettled(emailPromise);
 
-          sentEmails.map(sentEmail => {
+          sentEmails.length ? sentEmails.map(sentEmail => {
             sentEmailErrArr.push(sentEmail.status)
             if (sentEmail.status === "rejected") {
               sentEmailErrMsgArr.push(sentEmail.reason.message)
             }
-          })
+          }) : sentEmailErrArr, sentEmailErrMsgArr = []
         }
 
         res.status(201).json({
           status: 1,
-          data: {  
-            crashEmail : log.type === "error" ? {
+          data: {
+            crashEmail: log.type === "error" ? {
               status: sentEmailErrArr.includes("rejected") ? 0 : 1,
               errMsg: sentEmailErrMsgArr.length ? sentEmailErrMsgArr.join(" | ") : "",
               msg: sentEmailErrMsgArr.length ? `Error sending ${sentEmailErrMsgArr.length} out of ${sentEmails.length} log(s)` : "Email(s) sent successfully."
@@ -255,19 +263,8 @@ const createLogsV2 = async (req, res) => {
 
     } else if (req.contentType === "formData") {
 
-      fs.createReadStream(req.file.path).pipe(unzipper.Extract({ path: `./public/uploads/${req.body.did}` }));
-
-      const fileNameArr = []
-
-      fs.createReadStream(req.file.path)
-        .pipe(unzipper.Parse())
-        .on('entry', entry => {
-          fileNameArr.push(entry)
-          entry.autodrain()
-        })
-        .promise()
-        .then(() => console.log('Files unzipped'), e => console.log('error', e));
-
+      const files = await decompress(req.file.path, `./public/uploads/${req.body.did}`)
+      console.log("files length: ", files.length)
       const Dvc = await new Device({
         did: req.body.did,
         name: req.body.deviceName,
@@ -295,16 +292,16 @@ const createLogsV2 = async (req, res) => {
         });
       }
 
-      let fileNamePromise = fileNameArr.map(async (fileName) => {
-        console.log(fileName.path)
-        const putDataIntoLoggerDb = new modelReference({
+      let fileNamePromise = files.length && files.map(async (file) => {
+        console.log(file.path)
+        let putDataIntoLoggerDb = await new modelReference({
           version: req.body.version,
           type: req.body.type,
           device: isDeviceSaved._id,
           log: {
-            file: fileName.path,
+            file: file.path,
             date: d.toISOString(),
-            filePath: `uploads/${req.body.did}/${fileName.path}`,
+            filePath: `uploads/${req.body.did}/${file.path}`,
             message: "",
             type: "error",
           },
@@ -324,6 +321,10 @@ const createLogsV2 = async (req, res) => {
         }
       })
 
+      findProjectWithCode.totalCount = totalCount + logs.length;
+
+      const updatedProjectData = await findProjectWithCode.save();
+
       if (!logsErrArr.includes("fulfilled")) {
         return res.status(400).json({
           status: logsErrMsgArr.length === logs.length ? -1 : 0,
@@ -338,34 +339,41 @@ const createLogsV2 = async (req, res) => {
         });
       } else {
 
-        let emailPromise = findProjectWithCode.reportEmail.map(async (email) => {
-          logs.map(log => {
-            const url = `${log.value.log.filePath}`;
-            // console.log(url)
-            return new Email(email, url).sendCrash();
-          })
-        });
-    
-        let sentEmails = await Promise.allSettled(emailPromise);
-        
+        var emailPromise = []
+        var sentEmails = []
         var sentEmailErrArr = []
         var sentEmailErrMsgArr = []
 
-        sentEmails.map(sentEmail => {
-          sentEmailErrArr.push(sentEmail.status)
-          if (sentEmail.status === "rejected") {
-            sentEmailErrMsgArr.push(sentEmail.reason.message)
-          }
-        })
+        if (findProjectWithCode.reportEmail.length) {
+
+          emailPromise = findProjectWithCode.reportEmail.map(email => {
+            logs.map(log => {
+              const url = `${log.value.log.filePath}`;
+              // console.log(url)
+              return new Email(email, url).sendCrash();
+            })
+          })
+
+          sentEmails = await Promise.allSettled(emailPromise);
+
+          sentEmails.length ? sentEmails.map(sentEmail => {
+            sentEmailErrArr.push(sentEmail.status)
+            if (sentEmail.status === "rejected") {
+              sentEmailErrMsgArr.push(sentEmail.reason.message)
+            }
+          }) : sentEmailErrArr, sentEmailErrMsgArr = []
+
+        }
 
         res.status(201).json({
           status: 1,
-          data: {  
+          data: {
             crashEmail: {
-              status: sentEmailErrArr.includes("rejected") ? 0 : 1,
+              status: sentEmailErrArr.length && sentEmailErrArr.includes("rejected") ? 0 : 1,
               errMsg: sentEmailErrMsgArr.length ? sentEmailErrMsgArr.join(" | ") : "",
               msg: sentEmailErrMsgArr.length ? `Error sending ${sentEmailErrMsgArr.length} out of ${sentEmails.length} log(s)` : "Email(s) sent successfully."
-          }},
+            }
+          },
           message: "Successful",
         });
       }
@@ -449,7 +457,7 @@ const createAlerts = async (req, res, next) => {
     if (!alertsErrArr.includes("rejected")) {
       return res.status(201).json({
         status: 1,
-        data: { alertCount : alerts.length },
+        data: { alertCount: alerts.length },
         message: "Successful",
       });
     } else {
@@ -521,33 +529,54 @@ const getProjectWithFilter = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.collection_name}.js`);
 
-    let logs;
+    let dt = new Date(req.query.endDate)
+    dt.setDate(dt.getDate() + 1)
 
-    // const totalCount = await collectionName.estimatedDocumentCount({})
-    const countObjQuery = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }),
-      req.query
-    ).logFilter();
-    const countObj = await countObjQuery.query;
+    var sortOperator = { "$sort": {} }
+    let sort = req.query.sort || "-createdAt"
+    sortOperator["$sort"][sort] = 1;
 
-    const features = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }).populate({
-        path: "device",
-        select: "did name code manufacturer os",
-      }),
-      req.query
+    var matchOperator = {
+      "$match": {
+        "log.date": {
+          $gte: new Date(req.query.startDate),
+          $lte: dt
+        },
+        type: req.query.projectType
+      }
+    }
+    let logMatch = req.query.logType
+    logMatch ? matchOperator["$match"]["log.type"] = logMatch : delete matchOperator["$match"]["log.type"]
+
+    const data = await collectionName.aggregate(
+      [
+        {
+          $facet: {
+            "totalRecords": [
+              matchOperator,
+              {
+                $count: "total"
+              }
+            ],
+            "data": [
+              matchOperator,
+              sortOperator,
+              { $skip: ((parseInt(req.query.page) - 1) * parseInt(req.query.limit)) || 1 },
+              { $limit: parseInt(req.query.limit) || 500 }
+            ]
+          }
+        }
+      ]
     )
-      .logFilter()
-      .sort()
-      .paginate();
 
-    logs = await features.query;
-    // res 
-    console.log("Res headers",res.headers)
     return res.status(200).json({
       status: 1,
       message: "Getting all logs",
-      data: { count: countObj.length, pageLimit: logs.length, logs: logs },
+      data: {
+        count: data[0]?.totalRecords[0]?.total, 
+        pageLimit: data[0]?.data.length, 
+        logs: data[0]?.data
+      }
     });
   } catch (err) {
     return res.status(500).json({
@@ -605,34 +634,51 @@ const getAlertsWithFilter = async (req, res) => {
 
     const collectionName = require(`../model/${isProjectExist.alert_collection_name}.js`);
 
-    let alerts;
+    let dt = new Date(req.query.endDate)
+    dt.setDate(dt.getDate() + 1)
 
-    // const totalCount = await collectionName.estimatedDocumentCount({})
-    const countObjQuery = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }),
-      req.query
-    ).filter();
-    const countObj = await countObjQuery.query;
+    var sortOperator = { "$sort": {} }
+    let sort = req.query.sort || "-createdAt"
+    sortOperator["$sort"][sort] = 1;
 
-    const features = new QueryHelper(
-      collectionName.find({ type: req.query.projectType }),
-      req.query
+    var matchOperator = {
+      "$match": {
+        "createdAt": {
+          $gte: new Date(req.query.startDate),
+          $lte: dt
+        },
+        type: req.query.projectType
+      }
+    }
+
+    const data = await collectionName.aggregate(
+      [
+        {
+          $facet: {
+            "totalRecords": [
+              matchOperator,
+              {
+                $count: "total"
+              }
+            ],
+            "data": [
+              matchOperator,
+              sortOperator,
+              { $skip: ((parseInt(req.query.page) - 1) * parseInt(req.query.limit)) || 1 },
+              { $limit: parseInt(req.query.limit) || 500 }
+            ]
+          }
+        }
+      ]
     )
-      .filter()
-      .sort()
-      .paginate();
 
-    alerts = await features.query;
-
-    // Sending type name instead of type code
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       status: 1,
       message: "Getting all alerts",
       data: {
-        count: countObj.length,
-        pageLimit: alerts.length,
-        alerts: alerts,
+        count: data[0]?.totalRecords[0]?.total,
+        pageLimit: data[0]?.data.length,
+        alerts: data[0]?.data
       },
     });
   } catch (err) {

@@ -66,7 +66,7 @@ module.exports = class Email {
     await this.send("welcome", "Welcome to LogCat!");
   }
 
-  sendCrash() {
+  async sendCrash() {
     this.send("crash", "Crash Notification: LogCat");
   }
 
