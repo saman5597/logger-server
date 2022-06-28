@@ -564,6 +564,14 @@ const getProjectWithFilter = async (req, res) => {
             ],
             "data": [
               matchOperator,
+              {
+                $lookup: {
+                  from: "devices",
+                  localField: "device",
+                  foreignField: "_id",
+                  as: "device",
+                },
+              },
               sortOperator,
               { $skip: skip },
               { $limit: limit }
