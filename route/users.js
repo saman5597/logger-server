@@ -15,8 +15,8 @@ const {
 
 const {
     isAuth
-} = require('../middleware/authMiddleware')
-
+} = require('../middleware/authMiddleware');
+const { profileCache } = require("../middleware/cache.js");
 
 // AUTH Route
 // Unprotected
@@ -32,7 +32,7 @@ router.get('/auth/logout',isAuth,logoutUser)
 
 // USERS Route
 // Protected Route
-router.get('/users', isAuth, getUserByUserId)
+router.get('/users', isAuth, profileCache(10), getUserByUserId)
 router.put('/users/update',isAuth,updateUserProfile)
 router.put("/users/changepassword", isAuth, userPasswordChange);
 

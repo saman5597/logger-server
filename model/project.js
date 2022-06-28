@@ -34,6 +34,10 @@ const projectSchema = mongoose.Schema({
     status: {
         type: Boolean,
         default: true
+    },
+    totalCount: {
+        type: Number,
+        default: 0
     }
 }, {timestamps:true})
 

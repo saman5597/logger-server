@@ -32,7 +32,6 @@ const {
 } = require("../controller/logs");
 
 const { isAuth } = require("../middleware/authMiddleware");
-const cache = require("../middleware/cache");
 
 const { validateHeader } = require("../middleware/validateMiddleware");
 
@@ -82,7 +81,7 @@ router.post(
 router.post("/alerts/:project_code", createAlerts);
 
 //Protected Route
-router.get("/:projectCode", isAuth, cache(10), getProjectWithFilter);
+router.get("/:projectCode", isAuth, getProjectWithFilter);
 router.get("/getLogsCount/:projectCode", isAuth, getLogsByLogType);
 router.get("/datewiselogcount/:projectCode", isAuth, dateWiseCrashCount);
 router.get(
