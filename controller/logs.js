@@ -534,7 +534,8 @@ const getProjectWithFilter = async (req, res) => {
 
     var sortOperator = { "$sort": {} }
     let sort = req.query.sort || "-createdAt"
-    sortOperator["$sort"][sort] = 1;
+    
+    sort.includes("-") ? sortOperator["$sort"][sort.replace("-","")] = -1 : sortOperator["$sort"][sort] = 1
 
     var matchOperator = {
       "$match": {
@@ -654,7 +655,8 @@ const getAlertsWithFilter = async (req, res) => {
 
     var sortOperator = { "$sort": {} }
     let sort = req.query.sort || "-createdAt"
-    sortOperator["$sort"][sort] = 1;
+    
+    sort.includes("-") ? sortOperator["$sort"][sort.replace("-","")] = -1 : sortOperator["$sort"][sort] = 1
 
     var matchOperator = {
       "$match": {
@@ -669,7 +671,7 @@ const getAlertsWithFilter = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 500;
     let skip = (page - 1) * limit;
-
+    console.log(sortOperator)
     const data = await collectionName.aggregate(
       [
         {
