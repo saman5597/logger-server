@@ -3,8 +3,6 @@ const { getDaysArray } = require("../helper/helperFunctions");
 const Device = require("../model/device");
 const QueryHelper = require("../helper/queryHelper");
 const Email = require("../utils/email");
-// const unzipper = require('unzipper');
-// const fs = require('fs');
 const decompress = require('decompress');
 
 // This function will be replaced by createLogsV2 
