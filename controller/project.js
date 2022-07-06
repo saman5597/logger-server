@@ -342,6 +342,7 @@ const updateProjectWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
     const { name, description, device_type } = req.body;
+    var isDuplicate = false
 
     const getProjectWithProjectCode = await Projects.findOne({
       code: projectCode,
@@ -365,16 +366,32 @@ const updateProjectWithProjectCode = async (req, res) => {
 
     const addNewElementToArray = [];
     const newTypeCodeArray = [];
-    if (device_type) {
-      const getLengthOfExistingDeviceType =
-        getProjectWithProjectCode.device_types.length;
+    if (device_type.length) {
+      const getLengthOfExistingDeviceType =  getProjectWithProjectCode.device_types.length;
+ 
+      getProjectWithProjectCode.device_types.forEach((deviceType) => {
+        if(device_type.includes(deviceType.typeName)) {
+          isDuplicate = true
+          return
+        }
+      });
 
-      getProjectWithProjectCode.device_types.map((deviceTypes) =>
-        addNewElementToArray.push(deviceTypes)
-      );
+      if (isDuplicate) {
+        return res.status(400).json({
+          status: 0,
+          data: {
+            err: {
+              generatedTime: new Date(),
+              errMsg: 'Product type already exists.',
+              msg: 'Product type already exists.',
+              type: 'ValidationError',
+            },
+          },
+        });
+      }
 
-      getProjectWithProjectCode.device_types.map((typeCodes) =>
-        newTypeCodeArray.push(`"${typeCodes.typeCode}"`)
+      getProjectWithProjectCode.device_types.map((deviceType) =>
+        newTypeCodeArray.push(`"${deviceType.typeCode}"`)
       );
 
       for (let i = 0; i < device_type.length; i++) {
@@ -384,7 +401,7 @@ const updateProjectWithProjectCode = async (req, res) => {
         });
         newTypeCodeArray.push(`"00${getLengthOfExistingDeviceType + i + 1}"`);
       }
-
+    
       const schemaBlueprint = `
       const mongoose = require('mongoose');
       const device = require('./device')
@@ -408,7 +425,7 @@ const updateProjectWithProjectCode = async (req, res) => {
                 },
                 type: {
                   type: String,
-                  enum: [${typeCodeArray}],
+                  enum: [${newTypeCodeArray}],
                   required: [true, "Atleast one model required."]
                 },
                 device:{ type: mongoose.Schema.Types.ObjectId, ref: 'Device' },
@@ -458,12 +475,12 @@ const updateProjectWithProjectCode = async (req, res) => {
       ? name
       : getProjectWithProjectCode.name;
     getProjectWithProjectCode.description = description;
-    getProjectWithProjectCode.device_types = device_type
-      ? addNewElementToArray
+    getProjectWithProjectCode.device_types = device_type.length
+      ? getProjectWithProjectCode.device_types.concat(addNewElementToArray)
       : getProjectWithProjectCode.device_types;
     // Updating Data
 
-    const isGetProjectWithProjectCodeSaved = getProjectWithProjectCode.save();
+    const isGetProjectWithProjectCodeSaved = await getProjectWithProjectCode.save();
 
     if (!isGetProjectWithProjectCodeSaved) {
       return res.status(500).json({
@@ -477,13 +494,12 @@ const updateProjectWithProjectCode = async (req, res) => {
           },
         },
       });
-    }
-
-    res.status(200).json({
+    } else return res.status(200).json({
       status: 1,
       data: {},
       message: "Project details Updated!!",
     });
+
   } catch (err) {
     return res.status(500).json({
       status: -1,
