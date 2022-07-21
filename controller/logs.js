@@ -1133,9 +1133,24 @@ const getErrorCountByOSArchitecture = async (req, res) => {
 const getLogsByLogType = async (req, res) => {
   try {
     const { projectCode } = req.params;
+
+    if (!req.params.projectCode) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project type not provided.",
+            msg: "Project type not provided.",
+            type: "Mongodb Error",
+          },
+        },
+      });
+    }
+
     const isProjectExist = await Projects.findOne({ code: projectCode });
     if (!isProjectExist) {
-      return res.status(400).json({
+      return res.status(404).json({
         status: 0,
         data: {
           err: {
@@ -1154,8 +1169,8 @@ const getLogsByLogType = async (req, res) => {
         data: {
           err: {
             generatedTime: new Date(),
-            errMsg: "Project code not provided.",
-            msg: "Project code not provided.",
+            errMsg: "Project type not provided.",
+            msg: "Project type not provided.",
             type: "Mongodb Error",
           },
         },
@@ -1163,28 +1178,14 @@ const getLogsByLogType = async (req, res) => {
     }
 
     if (!req.query.startDate || !req.query.endDate) {
-      return res.status(500).json({
+      return res.status(400).json({
         status: 0,
         data: {
           err: {
             generatedTime: new Date(),
             errMsg: "Provide start date and end date.",
             msg: "Provide start date and end date.",
-            type: "Client Error",
-          },
-        },
-      });
-    }
-
-    if (!req.params.projectCode) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project type not provided.",
-            msg: "Project type not provided.",
-            type: "Mongodb Error",
+            type: "ValidationError",
           },
         },
       });

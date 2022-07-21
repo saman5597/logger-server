@@ -19,6 +19,6 @@ router.post('/',isAuth,isSuperAdmin,createNewProject)
 router.get('/getDeviceCount/:projectCode',isAuth,getProjectDetails)
 router.get('/:projectCode',isAuth, getProjectWithProjectCode)
 router.put('/:projectCode',isAuth, updateProjectWithProjectCode)
-router.put('/updateEmail/:projectCode', addEmailWithProjectCode)
+router.put('/updateEmail/:projectCode', isAuth, isSuperAdmin, addEmailWithProjectCode)
 
 module.exports = router;

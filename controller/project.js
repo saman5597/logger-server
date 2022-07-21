@@ -279,25 +279,10 @@ const createNewProject = async (req, res) => {
 const getProjectWithProjectCode = async (req, res) => {
   try {
     const { projectCode } = req.params;
-    // if not enter projectCode
-
-    if (!projectCode) {
-      return res.status(400).json({
-        status: 0,
-        data: {
-          err: {
-            generatedTime: new Date(),
-            errMsg: "Project not found",
-            msg: "Project not found",
-            type: "Internal Server Error",
-          },
-        },
-      });
-    }
 
     const getProject = await Projects.findOne({ code: projectCode });
     if (!getProject) {
-      return res.status(400).json({
+      return res.status(404).json({
         status: 0,
         data: {
           err: {
@@ -626,9 +611,23 @@ const getProjectDetails = async (req, res) => {
   try {
     const { projectCode } = req.params;
 
+    if (!projectCode) {
+      return res.status(400).json({
+        status: 0,
+        data: {
+          err: {
+            generatedTime: new Date(),
+            errMsg: "Project code required.",
+            msg: "Project code required.",
+            type: "Internal Server Error",
+          },
+        },
+      });
+    }
+
     const projectCollection = await Projects.findOne({ code: projectCode });
     if (!projectCollection) {
-      return res.status(400).json({
+      return res.status(404).json({
         status: 0,
         data: {
           err: {
